@@ -16,7 +16,7 @@
   document.head.appendChild(st);
 
   const S = () => DM.S;
-  const ui = (DM.ui.prod = DM.ui.prod || { view: 'table', cat: 'All', q: '', status: 'all' });
+  const ui = (DM.ui.prodList = DM.ui.prodList || { view: 'table', cat: 'All', q: '', status: 'all' });
   const imp = (DM.ui.prodImp = DM.ui.prodImp || { step: 0, headers: [], rows: [], map: {}, file: '' });
   const stock = (DM.ui.stock = DM.ui.stock || { band: 'A', q: '', cart: {}, cat: 'All' });
   const prods = () => S().products || [];
