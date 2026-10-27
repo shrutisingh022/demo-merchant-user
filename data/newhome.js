@@ -449,7 +449,7 @@
         const th = getThread(S);
         (o.msgs || []).forEach((mm, k) => {
           if (mm.resolves) { const rv = th.messages.find((x) => x.meta && x.meta.reviewId === mm.resolves); if (rv) rv.meta.resolved = mm.resolution; th.messages.push(card(mm.id, 'u-pankaj', { type: 'resolution', ...mm.resolution, reviewId: mm.resolves }, mm.text)); return; }
-          th.messages.push({ ...mm, at: iso(o.t) });
+          th.messages.push(JSON.parse(JSON.stringify({ ...mm, at: iso(o.t) })));
         });
         const T = o.thread || {};
         if (T.owner) th.owner = T.owner; if (T.label) { th.statusLabel = T.label; th.statusTone = T.tone || 'grey'; } if (T.unread != null) th.unread = T.unread; if (T.note) th.note = T.note; if (T.sla) th.slaTone = T.sla; if (T.status) th.status = T.status;

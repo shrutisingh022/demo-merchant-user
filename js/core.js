@@ -133,7 +133,7 @@
       const g = DM._grids[+el.dataset.gid]; if (!g) return; const { cols, rows, o } = g;
       const pager = !o.noPager && rows.length > (o.pageSize || 25);
       const api = agGrid.createGrid(el, {
-        rowData: rows, theme: 'legacy', headerHeight: 40, rowHeight: 40, suppressCellFocus: true, animateRows: false,
+        rowData: rows, headerHeight: 40, rowHeight: 40, suppressCellFocus: true, animateRows: false,
         domLayout: pager ? 'normal' : 'autoHeight', pagination: pager, paginationPageSize: o.pageSize || 25, paginationPageSizeSelector: pager ? [10, 25, 50, 100] : false,
         defaultColDef: { sortable: true, resizable: true, filter: true, suppressHeaderMenuButton: false, minWidth: 70 },
         columnDefs: cols.map((c) => ({ headerName: c.label, field: c.k, colId: c.k || c.label, type: c.num ? 'rightAligned' : undefined, width: c.w ? parseInt(c.w) : undefined, flex: c.w ? undefined : (c.flex || 1), minWidth: c.w ? parseInt(c.w) : 110,
@@ -354,7 +354,7 @@
     const focus = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.input;
     const sel = focus ? [document.activeElement.selectionStart, document.activeElement.selectionEnd] : null;
     const view = document.getElementById('view'); const sc = view.scrollTop;
-    document.getElementById('app').classList.toggle('panel-closed', !path.startsWith('/inbox') || DM.ui.panelHidden);
+    document.getElementById('app').classList.toggle('panel-closed', !!(!path.startsWith('/inbox') || DM.ui.panelHidden));
     DM._grids = [];
     renderRail(path); renderTop(path, m);
     let html;
@@ -415,6 +415,8 @@
   A['settings-menu'] = (el) => { DM.ui.setMenu = !DM.ui.setMenu; renderRail(DM.path()); };
   A['merchant-menu'] = (el) => DM.menu(el, [{ label: 'Demo Merchant User (current)', icon: 'check' }, { label: 'Company settings', icon: 'building', run: () => DM.go('/settings/organisation') }]);
   A['account-menu'] = (el) => DM.menu(el, [{ label: 'Personal settings', icon: 'user', run: () => DM.go('/settings/personal') }, { label: 'Usage', icon: 'gauge', run: () => DM.go('/settings/usage') }, { label: 'Getting started', icon: 'rocket', run: () => DM.go('/getting-started') }, { label: 'Sign out (demo)', icon: 'logout', run: () => DM.toast('Demo workspace — nobody to sign out.', 'info') }]);
+  A['view-menu'] = (el) => DM.menu(el, [{ label: 'All', icon: 'check' }, { label: 'Recently active', icon: 'clock', run: () => DM.toast('View applied') }, { label: 'Save current view…', icon: 'plus', run: () => DM.toast('View saved') }]);
+  A['cols-menu'] = (el) => DM.menu(el, ['Number', 'Name', 'Status', 'Created'].map((l) => ({ label: l, icon: 'check', run: () => DM.toast('Column toggled') })));
   A['noop'] = (el) => DM.toast(el.dataset.arg || 'Done');
   A['toast'] = (el) => DM.toast(el.dataset.arg || 'Done');
 
@@ -443,7 +445,7 @@
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openPalette(); }
     if (e.key === 'Escape') { DM.closeModal(); DM.closeDrawer(); }
   });
-  window.addEventListener('hashchange', () => { DM.render(); });
+  window.addEventListener('hashchange', () => { DM.closeDrawer(); DM.closeModal(); DM.render(); });
 
   DM.boot = () => {
     DM.root = document.getElementById('root'); DM.root.innerHTML = shell();

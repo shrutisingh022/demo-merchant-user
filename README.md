@@ -18,7 +18,7 @@ Open http://localhost:8765. Opening `index.html` directly also works.
 | **Stuffcool** | B2B catalogue and dealer price bands → dealer orders → vouchers synced to Tally |
 | **NewHome** | WhatsApp orders (text, photo, voice) → ASM review → orders posted to the Coralio API |
 
-Pick a use case, then Play, step, jump or reset. Each step changes what the admin shows: inbox messages, RFQs, drafts, orders, ERP sync log, dashboard KPIs. The panel charts update as steps land.
+The look follows the live NuHome tenant of merchants.anuma.run (notes in `docs/LIVE_DESIGN.md`); tables are AG Grid. Switch use cases from the small switcher in the top bar. The Scenarios panel (Play, step, jump, reset) appears in Inbox. Each step changes what the admin shows: inbox messages, RFQs, drafts, orders, ERP sync log, dashboard KPIs. The panel charts update as steps land.
 
 ## Layout
 

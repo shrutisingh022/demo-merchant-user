@@ -3,16 +3,26 @@
   const { esc, icon: I, fmt } = DM;
   const st = document.createElement('style'); st.dataset.for = 'agents';
   st.textContent = `
-  .ag-card{padding:16px;cursor:pointer;display:flex;flex-direction:column;gap:12px;transition:border-color .14s,box-shadow .14s}
+  .ag-grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .ag-card{padding:0;cursor:pointer;display:flex;flex-direction:column;overflow:hidden;transition:border-color .14s,box-shadow .14s}
   .ag-card:hover{border-color:#bdbdbd;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+  .ag-card .top{display:flex;align-items:flex-start;gap:10px;padding:14px 14px 12px}
+  .ag-card .foot{display:flex;align-items:center;gap:8px;border-top:1px solid var(--border);padding:9px 14px;font-size:12px;color:var(--muted-foreground);background:#fafafa;min-height:38px}
+  .ag-card.create{border-style:dashed;align-items:center;justify-content:center;min-height:104px;color:var(--muted-foreground);gap:2px;font-size:13px}.ag-card.create:hover{background:#fafafa;color:var(--foreground)}
   .ag-tile{width:36px;height:36px;border-radius:9px;background:#171717;color:#fff;display:grid;place-items:center;font-weight:700;flex:none}
-  .ag-dot{width:8px;height:8px;border-radius:50%;background:#a3a3a3;flex:none}.ag-dot.live{background:var(--success);box-shadow:0 0 0 3px var(--success-tint)}.ag-dot.paused{background:var(--warning)}
-  .ag-foot{display:flex;align-items:center;gap:8px;border-top:1px solid var(--border);padding-top:10px;font-size:12px;color:var(--muted-foreground)}
-  .ag-chtile{width:20px;height:20px;border-radius:5px;display:grid;place-items:center;color:#fff;flex:none}
-  .ag-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
-  .ag-rule{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-bottom:1px solid var(--border)}
-  .ag-rule:last-child{border-bottom:0}.ag-rule .acts{opacity:0;transition:opacity .14s;display:flex;gap:2px}.ag-rule:hover .acts{opacity:1}
+  .ag-chtile{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;color:#fff;flex:none}
+  .ag-pill{display:inline-flex;align-items:center;gap:6px;background:#f4f4f5;border-radius:999px;padding:2px 10px 2px 4px;font-size:12px;color:#262626;max-width:100%}
+  .ag-back{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted-foreground);margin-bottom:14px}.ag-back:hover{color:var(--foreground)}
+  .ag-col{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+  .ag-lock{display:flex;align-items:center;gap:10px;background:#f7f7f7;border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:12.5px;color:var(--muted-foreground)}
+  .ag-kv{display:grid;grid-template-columns:110px 1fr;align-items:center;gap:0}.ag-kv>*{padding:10px 0;border-top:1px solid var(--border)}.ag-kv dt{color:var(--muted-foreground);font-size:12.5px}
+  .ag-sec{padding:14px 16px;border-top:1px solid var(--border)}.ag-sec:first-of-type{border-top:0}
+  .ag-sec h4{font-size:12.5px;font-weight:600}.ag-sec p.d{font-size:12px;color:var(--muted-foreground);margin:2px 0 8px}
+  .ag-bul{display:flex;gap:9px;align-items:flex-start;padding:7px 0;font-size:12.5px}.ag-bul .dotb{width:4px;height:4px;border-radius:50%;background:#a3a3a3;margin-top:8px;flex:none}
+  .ag-bul .acts{opacity:0;display:flex;gap:0;transition:opacity .14s}.ag-bul:hover .acts{opacity:1}
+  .ag-tag{border:1px solid var(--border);border-radius:6px;padding:1px 7px;font-size:11px;white-space:nowrap;background:#fff;color:#404040;flex:none}
   .ag-slider{width:100%;accent-color:#171717}
+  .ag-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;align-items:start}
   .ag-chat{display:flex;flex-direction:column;height:calc(100vh - 290px);min-height:360px}
   .ag-chat .msgs{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:8px}
   .ag-chat .comp{display:flex;gap:8px;padding:10px;border-top:1px solid var(--border)}
@@ -20,7 +30,12 @@
   .diff-del{background:var(--destructive-tint);color:#b42318;border-radius:6px;padding:4px 8px;font-size:12.5px;text-decoration:line-through}
   .typing i{display:inline-block;width:5px;height:5px;border-radius:50%;background:#a3a3a3;margin:0 1px;animation:tp 1s infinite}.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
   @keyframes tp{0%,60%,100%{opacity:.3}30%{opacity:1}}
-  @media(max-width:1100px){.ag-layout{grid-template-columns:1fr}}`;
+  .ag-day{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted-foreground);margin:18px 0 8px}
+  .ag-log{border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  .ag-log .r{display:flex;gap:14px;padding:12px 16px;border-top:1px solid var(--border);cursor:pointer}.ag-log .r:first-child{border-top:0}.ag-log .r:hover{background:#fafafa}
+  .ag-log .tm{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--muted-foreground);min-width:42px;padding-top:2px}
+  .ag-chip{display:inline-block;border:1px solid var(--border);border-radius:6px;padding:0 6px;font-size:10.5px;background:#f7f7f7;color:#525252;margin-right:5px}
+  @media(max-width:1100px){.ag-layout{grid-template-columns:1fr}.ag-grid2{grid-template-columns:1fr}}`;
   document.head.appendChild(st);
 
   const U = () => (DM.ui.agents = DM.ui.agents || { chat: {}, train: {}, tab: {}, actFilter: 'all' });
@@ -34,80 +49,83 @@
   const nowLbl = () => new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
   const nowIso = () => new Date().toISOString();
 
+  const mark = (n) => DM.mark(n);
+  const agoLbl = (iso) => { if (!iso) return 'Just now'; const d = Math.floor((new Date('2026-10-27T12:00:00+05:30') - new Date(iso)) / 86400000); return d <= 0 ? 'Today' : d === 1 ? 'Yesterday' : d < 30 ? d + ' days ago' : d < 60 ? '1 month ago' : Math.round(d / 30) + ' months ago'; };
+  const stTone = (s) => (s === 'live' ? ['Live', 'green'] : s === 'paused' ? ['Paused', 'grey'] : ['Draft', 'grey']);
+  const chIds = (a) => (a.channelIds && a.channelIds.length ? a.channelIds : a.channelId ? [a.channelId] : []);
+  const chPill = (a) => { const ids = chIds(a); const c = DM.by(chans(), ids[0]); if (!c) return ''; return `<span class="ag-pill">${chTile(c)}<span class="trunc">${esc(c.name || chLabel(c))}</span>${ids.length > 1 ? `<span class="muted">and ${ids.length - 1} more</span>` : ''}</span>`; };
+
   /* ── roster ── */
   function card(a) {
-    const c = chOf(a);
+    const [lb, tn] = stTone(a.status); const c = chOf(a); const ids = chIds(a);
     return `<div class="card ag-card fadein" data-go="/agents/${esc(a.id)}">
-      <div class="row" style="align-items:flex-start"><div class="ag-tile">A</div><div class="grow"><div class="b">${esc(a.name)}</div><div class="sm muted" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(a.role || 'No description yet')}</div></div><span class="ag-dot ${esc(a.status)}" title="${esc(a.status)}"></span></div>
-      <div class="row gap4 wrap">${DM.badge(a.status === 'live' ? 'Live' : a.status === 'paused' ? 'Paused' : 'Draft', a.status === 'live' ? 'green' : 'amber', true)}${a.kpis ? DM.badge(fmt.num(a.kpis.handled || 0) + ' handled', 'outline') : ''}${(a.kpis?.escalated || 0) ? DM.badge(a.kpis.escalated + ' escalated', 'blue') : ''}</div>
-      <div class="ag-foot">${chTile(c)}<span class="grow trunc">${c ? 'Lives in ' + esc(chLabel(c)) : 'Not connected to a channel'}</span><button class="btn ghost icon sm" data-act="ag-menu" data-arg="${esc(a.id)}">${I('more')}</button></div></div>`;
+      <div class="top">${mark(36)}<div class="grow" style="min-width:0"><div class="b trunc" style="font-size:14px">${esc(a.name)}</div><div class="xs muted">Updated ${esc(agoLbl(a.updatedAt))}</div></div>${DM.status(lb, tn)}<button class="btn ghost icon sm" data-act="ag-menu" data-arg="${esc(a.id)}">${I('more')}</button></div>
+      <div class="foot">${c ? `${chTile(c)}<span class="trunc">Lives in <b style="color:var(--foreground);font-weight:500">${esc(c.name || chLabel(c))}</b>${ids.length > 1 ? ` and ${ids.length - 1} more` : ''}</span>` : 'Not on a channel yet'}</div></div>`;
   }
   DM.page('/agents', { title: 'Agents', render() {
     const list = agents();
-    return `<div class="page">${DM.header('Agents', 'Each agent answers on its own channel with its own script, training and activity log.', DM.btn('New agent', 'ag-new', { icon: 'plus' }))}
-      ${list.length ? `<div class="grid g3">${list.map(card).join('')}</div>` : `<div class="card"><div class="empty">${I('bot')}<h3 style="margin:8px 0 4px">No agents yet</h3><p>Create one to start answering on WhatsApp or email.</p><p style="margin-top:12px">${DM.btn('New agent', 'ag-new', { icon: 'plus' })}</p></div></div>`}</div>`;
+    return `<div class="page">${DM.header('Agents', 'Agents answer your customers on a channel and follow the shared rulebook.', DM.btn('Create', 'ag-new', { icon: 'plus' }))}
+      <div class="ag-grid2">${list.map(card).join('')}<div class="card ag-card create" data-act="ag-new">${I('plus')}<span>Create</span></div></div></div>`;
   } });
 
   function agentForm(a) {
     return `<div class="col gap12">${DM.field('Name', 'name', { value: a?.name || '', ph: 'e.g. WhatsApp order desk' })}${DM.field('What does it do?', 'role', { value: a?.role || '', area: true, ph: 'Takes orders, answers price and stock questions, hands over when unsure.' })}
-      <div class="field"><label>Channel</label><select class="select" name="channelId"><option value="">No channel yet</option>${chans().map((c) => `<option value="${esc(c.id)}" ${a?.channelId === c.id ? 'selected' : ''}>${esc(chLabel(c))}</option>`).join('')}</select></div></div>`;
+      <div class="field"><label>Channel</label><select class="select" name="channelId"><option value="">Not on a channel yet</option>${chans().map((c) => `<option value="${esc(c.id)}" ${a?.channelId === c.id ? 'selected' : ''}>${esc(chLabel(c))}</option>`).join('')}</select></div></div>`;
   }
-  DM.act('ag-new', () => DM.modal({ title: 'New agent', body: agentForm(), actions: [{ label: 'Cancel', cls: 'outline' }, { label: 'Create agent', run: (m) => {
+  DM.act('ag-new', () => DM.modal({ title: 'Create agent', body: agentForm(), actions: [{ label: 'Cancel', cls: 'outline' }, { label: 'Create agent', run: (m) => {
     const f = DM.formData(m); if (!f.name.trim()) { DM.toast('Give the agent a name', 'alert'); return false; }
-    const a = { id: DM.uid('ag'), name: f.name.trim(), status: 'draft', channelId: f.channelId || null, role: f.role, initialMessage: 'Hello! How can I help you today?', rules: [{ id: DM.uid('r'), kind: 'rule', scope: 'inherited', text: 'Always confirm quantity and unit before recording an order line.' }, { id: DM.uid('r'), kind: 'guardrail', scope: 'inherited', text: 'Never quote below the rate card minimum margin.' }], sources: [], learned: [], gaps: [], training: [], activity: [], kpis: { handled: 0, autoRate: 0, escalated: 0, avgReplySec: 0 } };
+    const a = { id: DM.uid('ag'), name: f.name.trim(), status: 'draft', channelId: f.channelId || null, channelIds: f.channelId ? [f.channelId] : [], type: 'Chat', updatedAt: new Date().toISOString(), role: f.role, initialMessage: '', rules: [{ id: DM.uid('r'), kind: 'rule', scope: 'inherited', text: 'Always confirm quantity and unit before recording an order line.' }, { id: DM.uid('r'), kind: 'guardrail', scope: 'inherited', text: 'Never quote below the rate card minimum margin.' }], sources: [], learned: [], gaps: [], training: [], activity: [], kpis: { handled: 0, autoRate: 0, escalated: 0, avgReplySec: 0 } };
     agents().push(a); DM.toast('Agent created'); DM.go('/agents/' + a.id);
   } }] }));
   DM.act('ag-menu', (el, ev) => { ev.stopPropagation(); const a = DM.by(agents(), el.dataset.arg); DM.menu(el, [
     { label: 'Open', icon: 'eye', run: () => DM.go('/agents/' + a.id) }, { label: 'Edit details', icon: 'edit', run: () => editAgent(a.id) },
     { label: a.status === 'live' ? 'Pause' : 'Go live', icon: a.status === 'live' ? 'pause' : 'play', run: () => toggleStatus(a.id) },
     { label: 'Delete', icon: 'trash', run: () => DM.confirm('Delete agent?', `<b>${esc(a.name)}</b> will stop answering on its channel. This can't be undone.`, () => { DM.S.agents = agents().filter((x) => x.id !== a.id); DM.toast('Agent deleted'); if (DM.path().startsWith('/agents/')) DM.go('/agents'); else DM.render(); }, 'Delete') }]); });
-  function editAgent(id) { const a = DM.by(agents(), id); DM.modal({ title: 'Edit agent', body: agentForm(a), actions: [{ label: 'Cancel', cls: 'outline' }, { label: 'Save', run: (m) => { Object.assign(a, DM.formData(m)); a.channelId = a.channelId || null; DM.toast('Agent updated'); DM.render(); } }] }); }
-  function toggleStatus(id) { const a = DM.by(agents(), id); a.status = a.status === 'live' ? 'paused' : 'live'; DM.toast(a.status === 'live' ? a.name + ' is live' : a.name + ' paused', a.status === 'live' ? 'check' : 'pause'); DM.render(); }
+  function editAgent(id) { const a = DM.by(agents(), id); DM.modal({ title: 'Edit agent', body: agentForm(a), actions: [{ label: 'Cancel', cls: 'outline' }, { label: 'Save', run: (m) => { const f = DM.formData(m); a.name = f.name || a.name; a.role = f.role; a.channelId = f.channelId || null; a.channelIds = a.channelId ? [a.channelId].concat(chIds(a).filter((x) => x !== a.channelId).slice(0, 1)) : []; a.updatedAt = new Date().toISOString(); DM.toast('Agent updated'); DM.render(); } }] }); }
+  function toggleStatus(id) { const a = DM.by(agents(), id); a.status = a.status === 'live' ? 'paused' : 'live'; a.updatedAt = new Date().toISOString(); DM.toast(a.status === 'live' ? a.name + ' is live' : a.name + ' paused', a.status === 'live' ? 'check' : 'pause'); DM.render(); }
   DM.act('ag-status', (el) => toggleStatus(el.dataset.arg));
   DM.act('ag-edit', (el) => editAgent(el.dataset.arg));
 
   /* ── detail shell ── */
-  const TABS = [['overview', 'Overview'], ['training', 'Training'], ['test', 'Test mode'], ['activity', 'Activity']];
+  const TABS = [['overview', 'Overview'], ['training', 'Training'], ['test', 'Test mode'], ['activity', 'Activity log']];
   function shell(a, tab, body) {
-    const c = chOf(a);
-    return `<div class="page">
-      <div class="row" style="margin-bottom:6px"><a class="btn ghost sm" href="#/agents">${I('arrowL')} Agents</a></div>
-      <div class="ph"><div class="row gap12"><div class="ag-tile" style="width:44px;height:44px;font-size:18px">A</div><div><h1 class="row" style="gap:8px">${esc(a.name)} ${DM.badge(a.status === 'live' ? 'Live' : a.status === 'paused' ? 'Paused' : 'Draft', a.status === 'live' ? 'green' : 'amber', true)}</h1><p class="row gap4">${chTile(c)} ${esc(chLabel(c))}</p></div></div>
-        <div class="acts">${DM.btn('Edit', 'ag-edit', { cls: 'outline', arg: a.id, icon: 'edit' })}${DM.btn(a.status === 'live' ? 'Pause' : 'Go live', 'ag-status', { arg: a.id, cls: a.status === 'live' ? 'outline' : '', icon: a.status === 'live' ? 'pause' : 'play' })}<button class="btn outline icon" data-act="ag-menu" data-arg="${esc(a.id)}">${I('more')}</button></div></div>
-      <div class="tabs">${TABS.map(([k, l]) => `<a class="tab ${k === tab ? 'on' : ''}" href="#/agents/${esc(a.id)}/${k}">${l}${k === 'activity' ? ` <span class="badge">${(a.activity || []).length}</span>` : ''}</a>`).join('')}</div>
+    const [lb, tn] = stTone(a.status);
+    return `<div class="page" style="max-width:1000px">
+      <a class="ag-back" href="#/agents">${I('arrowL')} Back to agents</a>
+      <div class="row" style="align-items:center;margin-bottom:14px;gap:12px">${mark(44)}<div class="grow" style="min-width:0"><div class="row" style="gap:8px"><h1 style="font-size:20px;font-weight:600">${esc(a.name)}</h1>${DM.status(lb, tn)}</div><div class="row gap4 sm muted" style="margin-top:3px">Lives in ${chPill(a) || '<span>no channel yet</span>'}</div></div>
+        <a class="btn outline" href="#/agents/${esc(a.id)}/test">${I('wand')} Test mode</a><button class="btn ghost icon" data-act="ag-menu" data-arg="${esc(a.id)}">${I('more')}</button></div>
+      <div class="tabs">${TABS.map(([k, l]) => `<a class="tab ${k === tab ? 'on' : ''}" href="#/agents/${esc(a.id)}/${k}">${l}</a>`).join('')}</div>
       ${body}</div>`;
   }
   const notFound = () => `<div class="page"><div class="empty"><h3>Agent not found</h3><p style="margin-top:10px"><a class="btn outline" href="#/agents">Back to agents</a></p></div></div>`;
   const renderTab = (tab, a) => (tab === 'training' ? training(a) : tab === 'test' ? testMode(a) : tab === 'activity' ? activity(a) : overview(a));
-  DM.page('/agents/:id', { title: 'Agent', crumb: (p) => (DM.by(agents(), p.id) || {}).name || 'Agent', render({ params }) { const a = DM.by(agents(), params.id); return a ? shell(a, 'overview', overview(a)) : notFound(); }, after: afterTab });
-  DM.page('/agents/:id/:tab', { title: 'Agent', crumb: (p) => ((DM.by(agents(), p.id) || {}).name || 'Agent') + ' / ' + p.tab, render({ params }) { const a = DM.by(agents(), params.id); if (!a) return notFound(); const t = TABS.some(([k]) => k === params.tab) ? params.tab : 'overview'; return shell(a, t, renderTab(t, a)); }, after: afterTab });
+  DM.page('/agents/:id', { title: 'Agent', crumb: 'Agents', render({ params }) { const a = DM.by(agents(), params.id); return a ? shell(a, 'overview', overview(a)) : notFound(); }, after: afterTab });
+  DM.page('/agents/:id/:tab', { title: 'Agent', crumb: 'Agents', render({ params }) { const a = DM.by(agents(), params.id); if (!a) return notFound(); const t = TABS.some(([k]) => k === params.tab) ? params.tab : 'overview'; return shell(a, t, renderTab(t, a)); }, after: afterTab });
   function afterTab(view) { const m = view.querySelector('.msgs'); if (m) m.scrollTop = m.scrollHeight; }
 
   /* ── overview ── */
-  const KIND = { rule: ['Rules', 'How the agent behaves day to day'], guardrail: ['Guardrails', 'Hard limits it will never cross'], helper: ['Helpers', 'Shortcuts and lookups it can use'] };
-  function ruleRows(a, kind) {
+  const SECS = [['rule', 'What it does', 'The behaviours this agent follows day to day.'], ['guardrail', 'What it never does', 'Hard limits it will not cross.'], ['helper', 'Helpers', 'Shortcuts and lookups it can use.']];
+  function bullets(a, kind) {
     const rs = (a.rules || []).filter((r) => r.kind === kind);
-    return `<div class="card" style="margin-bottom:12px"><div class="card-h"><div><h3>${KIND[kind][0]}</h3><div class="xs muted">${KIND[kind][1]}</div></div><span class="badge">${rs.length}</span><button class="btn outline sm right" data-act="ag-rule-add" data-arg="${esc(a.id)}|${kind}">${I('plus')} Add</button></div>
-      ${rs.length ? rs.map((r) => `<div class="ag-rule"><span style="margin-top:2px;color:var(--muted-foreground)">${I(kind === 'guardrail' ? 'shield' : kind === 'helper' ? 'wand' : 'check')}</span><div class="grow"><div>${esc(r.text)}</div><div class="row gap4" style="margin-top:4px">${DM.badge(r.scope === 'agent' ? 'This agent' : 'Inherited', r.scope === 'agent' ? 'blue' : '')}${r.overridden ? DM.badge('Overridden', 'amber') : ''}</div></div><div class="acts"><button class="btn ghost icon sm" title="Edit" data-act="ag-rule-edit" data-arg="${esc(a.id)}|${esc(r.id)}">${I('edit')}</button><button class="btn ghost icon sm" title="Remove" data-act="ag-rule-del" data-arg="${esc(a.id)}|${esc(r.id)}">${I('trash')}</button></div></div>`).join('') : `<div class="empty sm" style="padding:20px">None yet.</div>`}</div>`;
+    return rs.length ? rs.map((r) => `<div class="ag-bul"><i class="dotb"></i><span class="grow">${esc(r.text)}</span><span class="acts"><button class="btn ghost icon sm" title="Edit" data-act="ag-rule-edit" data-arg="${esc(a.id)}|${esc(r.id)}">${I('edit')}</button><button class="btn ghost icon sm" title="Remove" data-act="ag-rule-del" data-arg="${esc(a.id)}|${esc(r.id)}">${I('trash')}</button></span><span class="ag-tag">${r.scope === 'agent' ? 'This agent' : 'Inherited from business'}${r.overridden ? ' · overridden' : ''}</span></div>`).join('') : `<div class="sm muted" style="padding:6px 0">None yet.</div>`;
   }
   function overview(a) {
-    const p = policy(); const c = chOf(a); const k = a.kpis || {};
+    const p = policy(); const c = chOf(a);
     const ASMs = (DM.S.users || []).filter((u) => u.status !== 'invited');
-    return `<div class="ag-layout"><div>
-      <div class="grid g4" style="margin-bottom:12px">${DM.stat('Handled', fmt.num(k.handled || 0), 'last 30 days', { icon: 'chat' })}${DM.stat('Auto-resolved', (k.autoRate || 0) + '%', 'no human needed', { icon: 'zap' })}${DM.stat('Escalated', k.escalated || 0, 'to a human', { icon: 'users' })}${DM.stat('Avg reply', (k.avgReplySec || 0) + 's', 'first response', { icon: 'clock' })}</div>
-      <div class="card pad" style="margin-bottom:12px"><div class="row"><h3 class="grow">Role</h3><button class="btn outline sm" data-act="ag-save-script" data-arg="${esc(a.id)}">Save script</button></div>
-        <div class="col" style="margin-top:10px"><div class="field"><label>What this agent does</label><textarea class="textarea" rows="3" data-input="ag-role" data-id="${esc(a.id)}">${esc(a.role || '')}</textarea></div>
-        <div class="field"><label>Opening message</label><textarea class="textarea" rows="2" data-input="ag-init" data-id="${esc(a.id)}">${esc(a.initialMessage || '')}</textarea></div></div></div>
-      ${ruleRows(a, 'rule')}${ruleRows(a, 'guardrail')}${ruleRows(a, 'helper')}</div>
-      <div class="col" style="gap:12px">
-        <div class="card pad"><h3>Escalation policy</h3><div class="xs muted" style="margin:2px 0 10px">Shared by every agent. When Anuma isn't sure, a human takes over.</div>
-          <div class="field"><label class="row">Confidence floor <span class="right b mono" id="ag-cf">${p.confidenceFloor}%</span></label><input class="ag-slider" type="range" min="40" max="95" step="1" value="${p.confidenceFloor}" data-input="ag-cf"><div class="xs muted">Below this match confidence, the line goes to a person.</div></div>
-          <div class="field" style="margin-top:12px"><label class="row">Hand-off timer <span class="right b mono" id="ag-ht">${p.handoffTimerMin} min</span></label><input class="ag-slider" type="range" min="5" max="120" step="5" value="${p.handoffTimerMin}" data-input="ag-ht"><div class="xs muted">Re-notify the owner if no one picks the case up in this time.</div></div>
-          <div class="sep"></div><div class="field"><label>Notify</label><div class="col" style="gap:6px">${ASMs.slice(0, 6).map((u) => `<label class="row sm" style="cursor:pointer"><span class="chk ${p.notify.includes(u.id) ? 'on' : ''}" data-act="ag-notify" data-arg="${esc(u.id)}">${p.notify.includes(u.id) ? I('check').replace('class="i ', 'style="width:11px;height:11px" class="i ') : ''}</span>${DM.avatar(u.name, 'sm')} ${esc(u.name)} <span class="muted xs">${esc(u.role)}</span></label>`).join('')}</div></div>
-          <div class="field" style="margin-top:12px"><label>When the human is done</label><select class="select" data-change="ag-hb"><option value="anuma" ${p.handBack === 'anuma' ? 'selected' : ''}>Hand back to Anuma</option><option value="owner" ${p.handBack === 'owner' ? 'selected' : ''}>Stay with the human</option><option value="ask" ${p.handBack === 'ask' ? 'selected' : ''}>Ask the human each time</option></select></div></div>
-        <div class="card pad"><h3>Channel</h3>${c ? `<div class="row" style="margin-top:10px">${chTile(c)}<div class="grow"><div class="sm b">${esc(chLabel(c))}</div><div class="xs muted">${esc(c.provider || '')} · webhook ${esc(c.webhook || 'healthy')}</div></div>${DM.badge(c.state === 'connected' ? 'Connected' : 'Check', c.state === 'connected' ? 'green' : 'amber', true)}</div><div class="row" style="margin-top:10px"><a class="btn outline sm" href="#/settings/channels">Manage channels</a></div>` : `<p class="sm muted" style="margin:8px 0">Not connected to a channel yet.</p><button class="btn sm" data-act="ag-edit" data-arg="${esc(a.id)}">Choose channel</button>`}</div>
-        <div class="card pad"><h3>Knowledge</h3><div class="col" style="margin-top:8px;gap:8px">${(a.sources || []).slice(0, 5).map((s) => `<div class="row sm">${I(s.type === 'link' ? 'link' : s.type === 'chat' ? 'chat' : 'file')}<span class="grow trunc">${esc(s.title)}</span>${DM.badge(s.state || 'indexed', s.state === 'failed' ? 'red' : s.state === 'pending' ? 'amber' : 'green')}</div>`).join('') || '<div class="sm muted">No sources yet.</div>'}</div><button class="btn outline sm" style="margin-top:10px" data-act="ag-src-add" data-arg="${esc(a.id)}">${I('plus')} Add source</button></div>
-      </div></div>`;
+    return `<div class="ag-col">
+      <div class="card"><div class="row" style="padding:14px 16px 10px;align-items:flex-start;gap:10px">${c ? chTile(c).replace('width:12px', 'width:12px') : ''}<div class="grow"><div class="b" style="font-size:13.5px">${esc(a.name)}</div><div class="sm muted">${esc(a.role || 'No description yet.')}</div></div></div>
+        <div style="padding:0 16px 12px"><div class="ag-lock">${I('lock')}<span class="grow">This script is locked. It is written by training, and changed there.</span><a class="btn outline sm" href="#/agents/${esc(a.id)}/training">${I('wand')} Change it in Training</a></div></div>
+        <dl class="ag-kv" style="padding:0 16px"><dt>Type</dt><dd><span class="ag-pill" style="padding:2px 10px">${I('chat')} Chat</span></dd><dt>Lives in</dt><dd>${chPill(a) || '<span class="muted sm">Not on a channel yet</span>'} <button class="btn ghost sm" data-act="ag-edit" data-arg="${esc(a.id)}">${I('edit')} Change</button></dd></dl><div style="height:6px"></div></div>
+      <div class="card"><div class="card-h"><h3 class="grow">Instructions</h3></div>
+        <div class="ag-sec"><h4>First message</h4><p class="d">A set opening line, if one has been written for this agent.</p><div class="sm">${a.initialMessage ? esc(a.initialMessage) : '<span class="muted">None set. The agent writes its own opening from the rules below.</span>'}</div></div>
+        ${SECS.map(([k, t, d]) => `<div class="ag-sec"><div class="row"><h4 class="grow">${t}</h4><button class="btn ghost sm" data-act="ag-rule-add" data-arg="${esc(a.id)}|${k}">${I('plus')} Add</button></div><p class="d" style="margin-bottom:4px">${d}</p>${bullets(a, k)}</div>`).join('')}</div>
+      <div class="card pad"><h3>Escalation</h3><div class="xs muted" style="margin:2px 0 12px">Shared by every agent. When Anuma isn't sure, a human takes over.</div>
+        <div class="field"><label class="row">Confidence floor <span class="right b mono" id="ag-cf">${p.confidenceFloor}%</span></label><input class="ag-slider" type="range" min="40" max="95" step="1" value="${p.confidenceFloor}" data-input="ag-cf"><div class="xs muted">Below this match confidence, the line goes to a person.</div></div>
+        <div class="field" style="margin-top:12px"><label class="row">Hand-off timer <span class="right b mono" id="ag-ht">${p.handoffTimerMin} min</span></label><input class="ag-slider" type="range" min="5" max="120" step="5" value="${p.handoffTimerMin}" data-input="ag-ht"><div class="xs muted">Re-notify the owner if no one picks the case up in this time.</div></div>
+        <div class="sep"></div><div class="field"><label>Notify</label><div class="col" style="gap:6px">${ASMs.slice(0, 6).map((u) => `<label class="row sm" style="cursor:pointer"><span class="chk ${p.notify.includes(u.id) ? 'on' : ''}" data-act="ag-notify" data-arg="${esc(u.id)}">${p.notify.includes(u.id) ? I('check').replace('class="i ', 'style="width:11px;height:11px" class="i ') : ''}</span>${DM.avatar(u.name, 'sm')} ${esc(u.name)} <span class="muted xs">${esc(u.role)}</span></label>`).join('')}</div></div>
+        <div class="field" style="margin-top:12px"><label>When the human is done</label><select class="select" data-change="ag-hb"><option value="anuma" ${p.handBack === 'anuma' ? 'selected' : ''}>Hand back to Anuma</option><option value="owner" ${p.handBack === 'owner' ? 'selected' : ''}>Stay with the human</option><option value="ask" ${p.handBack === 'ask' ? 'selected' : ''}>Ask the human each time</option></select></div></div>
+      <div class="card pad"><div class="row"><h3 class="grow">Knowledge</h3><button class="btn outline sm" data-act="ag-src-add" data-arg="${esc(a.id)}">${I('plus')} Add source</button></div><div class="col" style="margin-top:8px;gap:8px">${(a.sources || []).slice(0, 6).map((s) => `<div class="row sm">${I(s.type === 'link' ? 'link' : s.type === 'chat' ? 'chat' : 'file')}<span class="grow trunc">${esc(s.title)}</span>${DM.status(s.state === 'failed' ? 'Failed' : s.state === 'pending' ? 'Pending' : 'Indexed', s.state === 'failed' ? 'red' : s.state === 'pending' ? 'amber' : 'green')}</div>`).join('') || '<div class="sm muted">No sources yet.</div>'}</div></div>
+    </div>`;
   }
   DM.input('ag-cf', (v, el) => { policy().confidenceFloor = +v; const s = document.getElementById('ag-cf'); if (s) s.textContent = v + '%'; });
   DM.input('ag-ht', (v) => { policy().handoffTimerMin = +v; const s = document.getElementById('ag-ht'); if (s) s.textContent = v + ' min'; });
@@ -194,18 +212,18 @@
   DM.act('ag-test-ask', (el) => { const [aid, q] = el.dataset.arg.split('|'); sendTest(aid, q); });
   DM.act('ag-test-reset', (el) => { delete U().chat[el.dataset.arg]; DM.render(); });
 
-  /* ── activity ── */
+  /* ── activity log ── */
+  const sortedAct = (a) => (a.activity || []).slice().sort((x, y) => String(y.at).localeCompare(String(x.at)));
+  const tone = { handled: 'green', escalated: 'blue', validation: 'amber' };
   function activity(a) {
-    const f = U().actFilter; const all = (a.activity || []).slice().sort((x, y) => String(y.at).localeCompare(String(x.at)));
-    const rows = all.filter((r) => f === 'all' || r.outcome === f);
-    const tone = { handled: 'green', escalated: 'blue', validation: 'amber' };
-    return `<div class="row" style="margin-bottom:12px">${DM.pills([{ key: 'all', label: 'All' }, { key: 'handled', label: 'Handled' }, { key: 'escalated', label: 'Escalated' }, { key: 'validation', label: 'Validation' }], f, 'ag-actf')}<span class="sm muted right">${rows.length} events</span></div>
-      ${DM.table([{ label: 'When', render: (r) => `<span class="muted">${esc(fmt.dt(r.at))}</span>` }, { label: 'Action', render: (r) => esc(r.action) }, { label: 'Outcome', render: (r) => DM.badge(r.outcome, tone[r.outcome] || '', true) }, { label: 'Channel', render: (r) => esc(r.channel || '—') }, { label: 'Case', render: (r) => (r.caseId ? `<a class="b" href="#/inbox/threads?case=${esc(r.caseId)}">${esc(r.caseId)}</a>` : '—') }], rows, { click: 'ag-act-open', empty: 'No activity yet — test the agent or go live.' }).replace(/data-arg="undefined"/g, '')}`;
+    const f = U().actFilter; const rows = sortedAct(a).filter((r) => f === 'all' || r.outcome === f);
+    const days = {}; rows.forEach((r) => { const d = new Date(r.at); const k = isNaN(d) ? String(r.at).slice(0, 10) : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }).toUpperCase(); (days[k] = days[k] || []).push(r); });
+    return `<div class="ag-col" style="max-width:860px"><div class="row">${DM.pills([{ key: 'all', label: 'All' }, { key: 'handled', label: 'Handled' }, { key: 'escalated', label: 'Escalated' }, { key: 'validation', label: 'Validation' }], f, 'ag-actf')}<span class="sm muted right">${rows.length} events</span></div>
+      ${rows.length ? Object.entries(days).map(([d, rs]) => `<div><div class="ag-day">${esc(d)}</div><div class="ag-log">${rs.map((r) => { const t = new Date(r.at); return `<div class="r" data-act="ag-act-open" data-arg="${esc(r.id)}"><span class="tm">${isNaN(t) ? '' : t.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span><div class="grow"><div><span class="ag-chip">${esc(r.kind || 'action')}</span><span class="ag-chip">${esc(r.outcome)}</span></div><div class="b sm" style="margin-top:4px">${esc(r.action)}</div><div class="xs muted">${esc(r.channel || '—')}${r.caseId ? ' · ' + esc(r.caseId) : ''}</div></div></div>`; }).join('')}</div></div>`).join('') : DM.empty('history', 'No activity yet', 'Test the agent or take it live and what it does shows up here.')}</div>`;
   }
   DM.act('ag-actf', (el) => { U().actFilter = el.dataset.arg; DM.render(); });
-  DM.act('ag-act-open', (el, ev) => {
-    if (ev.target.closest('a')) return; const aid = DM.path().split('/')[2]; const a = DM.by(agents(), aid); const idx = [...el.parentNode.children].indexOf(el);
-    const f = U().actFilter; const rows = (a.activity || []).slice().sort((x, y) => String(y.at).localeCompare(String(x.at))).filter((r) => f === 'all' || r.outcome === f); const r = rows[idx]; if (!r) return;
-    DM.drawer({ title: 'Activity', body: `<dl class="kv"><dt>Action</dt><dd>${esc(r.action)}</dd><dt>When</dt><dd>${esc(fmt.dt(r.at))}</dd><dt>Outcome</dt><dd>${DM.badge(r.outcome, '', true)}</dd><dt>Channel</dt><dd>${esc(r.channel || '—')}</dd><dt>Case</dt><dd>${r.caseId ? `<a class="b" href="#/inbox/threads?case=${esc(r.caseId)}">${esc(r.caseId)}</a>` : '—'}</dd><dt>Agent</dt><dd>${esc(a.name)}</dd></dl><div class="sep"></div><div class="sm muted">Reasoning</div><p class="sm" style="margin-top:6px">${r.outcome === 'escalated' ? 'Match confidence was below the escalation floor, so the case was handed to a person.' : r.outcome === 'validation' ? 'A field failed validation (quantity, unit or price) and the customer was asked to confirm.' : 'Every line matched the catalogue above the confidence floor, so the agent completed this on its own.'}</p>` });
+  DM.act('ag-act-open', (el) => {
+    const aid = DM.path().split('/')[2]; const a = DM.by(agents(), aid); const r = DM.by(a.activity || [], el.dataset.arg); if (!r) return;
+    DM.drawer({ title: 'Activity', body: `<dl class="kv"><dt>Action</dt><dd>${esc(r.action)}</dd><dt>When</dt><dd>${esc(fmt.dt(r.at))}</dd><dt>Outcome</dt><dd>${DM.status(r.outcome, tone[r.outcome] || 'grey')}</dd><dt>Channel</dt><dd>${esc(r.channel || '—')}</dd><dt>Case</dt><dd>${r.caseId ? `<a class="b" href="#/inbox/threads?case=${esc(r.caseId)}">${esc(r.caseId)}</a>` : '—'}</dd><dt>Agent</dt><dd>${esc(a.name)}</dd></dl><div class="sep"></div><div class="sm muted">Reasoning</div><p class="sm" style="margin-top:6px">${r.outcome === 'escalated' ? 'Match confidence was below the escalation floor, so the case was handed to a person.' : r.outcome === 'validation' ? 'A field failed validation (quantity, unit or price) and the customer was asked to confirm.' : 'Every line matched the catalogue above the confidence floor, so the agent completed this on its own.'}</p>` });
   });
 })();

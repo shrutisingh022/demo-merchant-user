@@ -21,60 +21,65 @@
   `;
   document.head.appendChild(st);
 
-  const U = (DM.ui.rfqs = DM.ui.rfqs || { tab: 'all', q: '', src: 'all', owner: 'all' });
+  const U = (DM.ui.rfqs = DM.ui.rfqs || { tab: 'all', q: '', src: 'all', owner: 'all', hid: [] });
   const STATUS = { new: ['New', 'blue'], review: ['In review', 'amber'], quoted: ['Quoted', 'violet'], won: ['Won', 'green'], lost: ['Lost', 'red'] };
   const SRC = { email: ['mail', 'Email'], whatsapp: ['chat', 'WhatsApp'], pdf: ['file', 'PDF'], excel: ['sheet', 'Excel'], portal: ['globe', 'Portal'] };
   const pn = (id) => (DM.by(DM.S.parties || [], id) || {}).name || '—';
   const un = (id) => { if (id === 'anuma') return 'Anuma'; const u = DM.by(DM.S.users || [], id); return u ? u.name : (id || 'Unassigned'); };
   const total = (r) => (r.lines || []).reduce((a, l) => a + (l.state !== 'unmatched' && l.price ? l.price * (l.qty || 0) : 0), 0);
-  const sbadge = (s) => { const [l, t] = STATUS[s] || [s, '']; return DM.badge(l, t, true); };
+  const TONE = { blue: 'blue', amber: 'amber', violet: 'blue', green: 'green', red: 'red' };
+  const sbadge = (s) => { const [l, t] = STATUS[s] || [s, 'grey']; return DM.status(l, TONE[t] || 'grey'); };
+  const caseNo = (t) => (t ? t.caseNo || t.id : '');
   const conf = (c, state) => { const col = state === 'matched' ? 'var(--success)' : state === 'review' ? 'var(--warning)' : 'var(--destructive)'; return `<span class="rfq-conf"><i><b style="width:${c || 0}%;background:${col}"></b></i><span class="mono">${c || 0}%</span></span>`; };
   const get = (id) => DM.by(DM.S.rfqs || [], id);
   const refresh = (r) => { r.total = total(r); };
 
   /* ── list ── */
+  const COLS = () => [
+    { id: 'no', label: 'Number', w: '120px', render: (r) => DM.mono(r.no) },
+    { id: 'party', label: 'Party', flex: 2, render: (r) => `<span class="b">${esc(pn(r.partyId))}</span>` },
+    { id: 'subject', label: 'Subject', flex: 2, render: (r) => esc(r.subject || '') },
+    { id: 'source', label: 'Source', w: '110px', render: (r) => { const s = SRC[r.source.type] || ['file', r.source.type]; return `<span class="monotag">${s[1]}</span>`; } },
+    { id: 'lines', label: 'Lines', w: '140px', render: (r) => { const m = r.lines.filter((l) => l.state === 'matched').length; return `<span class="mono">${m}/${r.lines.length}</span> ${m < r.lines.length ? '<span class="badge amber">needs review</span>' : ''}`; } },
+    { id: 'value', label: 'Value', num: true, w: '120px', render: (r) => fmt.inr(r.total || total(r)) },
+    { id: 'due', label: 'Due', w: '110px', render: (r) => { const late = new Date(r.due) < new Date('2026-10-27') && ['new', 'review'].includes(r.status); return `<span class="${late ? 'down' : ''}">${fmt.date(r.due)}</span>`; } },
+    { id: 'owner', label: 'Owner', w: '130px', render: (r) => esc(un(r.owner)) },
+    { id: 'status', label: 'Status', w: '120px', render: (r) => sbadge(r.status) },
+  ];
   function list() {
     const all = DM.S.rfqs || [];
     const q = U.q.toLowerCase();
-    let rows = all.filter((r) => (U.tab === 'all' || r.status === U.tab) && (U.src === 'all' || r.source.type === U.src) && (U.owner === 'all' || r.owner === U.owner)
+    const rows = all.filter((r) => (U.tab === 'all' || r.status === U.tab) && (U.src === 'all' || r.source.type === U.src) && (U.owner === 'all' || r.owner === U.owner)
       && (!q || (r.no + ' ' + pn(r.partyId) + ' ' + (r.subject || '')).toLowerCase().includes(q)));
     const cnt = (s) => all.filter((r) => r.status === s).length;
     const wonVal = all.filter((r) => r.status === 'won').reduce((a, r) => a + (r.total || 0), 0);
     const open = all.filter((r) => ['new', 'review'].includes(r.status));
     const owners = [...new Set(all.map((r) => r.owner).filter(Boolean))];
-    const cols = [
-      { label: 'RFQ', render: (r) => `<span class="b">${esc(r.no)}</span>` },
-      { label: 'Party', render: (r) => `<div class="row">${DM.avatar(pn(r.partyId), 'sm')}<span class="trunc">${esc(pn(r.partyId))}</span></div>` },
-      { label: 'Subject', render: (r) => `<span class="trunc" style="max-width:240px;display:block">${esc(r.subject || '')}</span>` },
-      { label: 'Source', render: (r) => { const s = SRC[r.source.type] || ['file', r.source.type]; return `<span class="badge outline">${I(s[0])}${s[1]}</span>`; } },
-      { label: 'Lines', render: (r) => { const m = r.lines.filter((l) => l.state === 'matched').length; return `<span class="mono">${m}/${r.lines.length}</span> ${m < r.lines.length ? '<span class="badge amber">needs review</span>' : ''}`; } },
-      { label: 'Value', num: true, render: (r) => fmt.inr(r.total || total(r)) },
-      { label: 'Due', render: (r) => { const late = new Date(r.due) < new Date('2026-10-27') && ['new', 'review'].includes(r.status); return `<span class="${late ? 'down' : ''}">${fmt.date(r.due)}</span>`; } },
-      { label: 'Owner', render: (r) => esc(un(r.owner)) },
-      { label: 'Status', render: (r) => sbadge(r.status) },
-    ];
-    return `<div class="page">
+    const cols = COLS().filter((c) => !U.hid.includes(c.id));
+    const viewLabel = U.src === 'all' && U.owner === 'all' ? 'All RFQs' : (U.src !== 'all' ? (SRC[U.src] || [0, U.src])[1] + ' RFQs' : 'Owner: ' + un(U.owner));
+    return `<div class="page wide">
       ${DM.header('RFQs', 'Inbound requests for quotation, parsed and matched to your catalogue.', `${DM.btn('Import', 'rfq-import', { cls: 'outline', icon: 'upload' })}${DM.btn('New RFQ', 'rfq-new', { icon: 'plus' })}`)}
-      <div class="grid g4" style="margin-bottom:16px">
-        ${DM.stat('Open RFQs', open.length, `${cnt('new')} new · ${cnt('review')} in review`, { icon: 'sheet' })}
-        ${DM.stat('Awaiting quote', fmt.inrc(open.reduce((a, r) => a + (r.total || total(r)), 0)), 'est. value', { icon: 'clock' })}
-        ${DM.stat('Quoted', cnt('quoted'), 'sent to customer', { icon: 'send' })}
-        ${DM.stat('Won', fmt.inrc(wonVal), `${cnt('won')} RFQs`, { icon: 'check', tone: 'up' })}
+      <div class="grid g4" style="margin-bottom:14px">
+        ${DM.statCard('Open RFQs', open.length, `${cnt('new')} new · ${cnt('review')} in review`, 'sheet')}
+        ${DM.statCard('Awaiting quote', fmt.inrc(open.reduce((a, r) => a + (r.total || total(r)), 0)), 'estimated value', 'clock')}
+        ${DM.statCard('Quoted', cnt('quoted'), 'sent to party', 'send')}
+        ${DM.statCard('Won', fmt.inrc(wonVal), `${cnt('won')} RFQs`, 'check', { tone: 'up' })}
       </div>
-      ${DM.tabs([{ key: 'all', label: 'All', count: all.length }, ...Object.entries(STATUS).map(([k, v]) => ({ key: k, label: v[0], count: cnt(k) }))], U.tab, 'rfq-tab')}
-      <div class="row wrap" style="margin-bottom:12px">
-        ${DM.searchBox('rfq-q', 'Search RFQs…', U.q)}
-        <select class="select" style="width:150px" data-change="rfq-src"><option value="all">All sources</option>${Object.entries(SRC).map(([k, v]) => `<option value="${k}" ${U.src === k ? 'selected' : ''}>${v[1]}</option>`).join('')}</select>
-        <select class="select" style="width:160px" data-change="rfq-owner"><option value="all">All owners</option>${owners.map((o) => `<option value="${o}" ${U.owner === o ? 'selected' : ''}>${esc(un(o))}</option>`).join('')}</select>
-        <span class="muted sm right">${rows.length} of ${all.length}</span>
-      </div>
-      ${DM.table(cols, rows, { go: (r) => '/orders/rfqs/' + r.id, empty: 'No RFQs match these filters.' })}
+      ${DM.toolbar(`<button class="btn outline sm" data-act="rfq-views">${I('grid')} ${esc(viewLabel)} ${I('chevD')}</button>${DM.seg([{ key: 'all', label: 'All', count: all.length }, ...Object.entries(STATUS).map(([k, v]) => ({ key: k, label: v[0], count: cnt(k) }))], U.tab, 'rfq-tab')}`,
+        `<button class="btn outline sm" data-act="rfq-cols">${I('columns')} Columns${U.hid.length ? ' · ' + U.hid.length + ' off' : ''}</button>${DM.searchBox('rfq-q', 'Search RFQs…', U.q)}`)}
+      ${rows.length ? DM.table(cols, rows, { go: (r) => '/orders/rfqs/' + r.id, pageSize: 50, offset: 372 }) : DM.empty('sheet', 'No RFQs match', 'Try another status or clear the search.')}
+      <div class="xs muted" style="margin-top:8px">${rows.length} of ${all.length} RFQs in view</div>
     </div>`;
   }
+  DM.act('rfq-views', (el) => {
+    const owners = [...new Set((DM.S.rfqs || []).map((r) => r.owner).filter(Boolean))];
+    DM.menu(el, [{ label: 'All RFQs', icon: U.src === 'all' && U.owner === 'all' ? 'check' : null, run: () => { U.src = 'all'; U.owner = 'all'; DM.render(); } },
+      ...Object.entries(SRC).map(([k, v]) => ({ label: v[1] + ' RFQs', icon: U.src === k ? 'check' : v[0], run: () => { U.src = k; U.owner = 'all'; DM.render(); } })),
+      ...owners.map((o) => ({ label: 'Owner: ' + un(o), icon: U.owner === o ? 'check' : 'user', run: () => { U.owner = o; U.src = 'all'; DM.render(); } }))]);
+  });
+  DM.act('rfq-cols', (el) => DM.colsMenu(el, COLS(), U.hid, () => DM.render()));
   DM.act('rfq-tab', (el) => { U.tab = el.dataset.arg; DM.render(); });
   DM.input('rfq-q', (v) => { U.q = v; DM.render(); });
-  DM.input('rfq-src', (v) => { U.src = v; DM.render(); });
-  DM.input('rfq-owner', (v) => { U.owner = v; DM.render(); });
   DM.act('rfq-import', () => DM.modal({
     title: 'Import RFQ', body: `<div class="col"><div class="rfq-file"><div class="ic">${I('upload')}</div><div class="grow"><div class="b sm">Drop a PDF, Excel or email (.eml)</div><div class="xs muted">Anuma reads the lines and matches them to your catalogue.</div></div></div>${DM.field('Or paste the request text', 'text', { area: true, rows: 5, ph: '10 x MCB 32A DP\n5 x 2.5 sqmm wire 90m …' })}</div>`,
     actions: [{ label: 'Cancel', cls: 'outline' }, { label: 'Parse & create', run: (m) => { const t = DM.formData(m).text.trim(); if (!t) { DM.toast('Paste some text or pick a file first', 'alert'); return false; } createFromText(t); } }],
@@ -111,7 +116,7 @@
   }
   function detail({ params }) {
     const r = get(params.id);
-    if (!r) return `<div class="page"><div class="empty"><h3>RFQ not found</h3><p style="margin-top:12px"><a class="btn outline" href="#/orders/rfqs">Back to RFQs</a></p></div></div>`;
+    if (!r) return `<div class="page"><div class="empty-card"><b>RFQ not found</b><p style="margin-top:12px"><a class="btn outline" href="#/orders/rfqs">Back to RFQs</a></p></div></div>`;
     const party = DM.by(DM.S.parties || [], r.partyId) || {};
     const unresolved = r.lines.filter((l) => l.state !== 'matched').length;
     const q = r.quoteId && DM.by(DM.S.quotes || [], r.quoteId);
@@ -129,22 +134,23 @@
       <td class="num"><input class="input rfq-num mono" type="number" min="0" value="${l.price || 0}" data-change="rfq-price" data-r="${r.id}" data-i="${i}" ${['won', 'lost'].includes(r.status) ? 'disabled' : ''}></td>
       <td class="num mono">${l.state === 'unmatched' ? '—' : fmt.inr((l.price || 0) * (l.qty || 0))}</td>
       <td style="white-space:nowrap">${l.state !== 'matched' ? DM.btn(l.productId ? 'Confirm' : 'Match', 'rfq-resolve', { cls: 'outline sm', arg: r.id + '|' + i }) : `<span class="badge green">${I('check')}Matched</span>`}</td></tr>`).join('');
-    return `<div class="page">
+    return `<div class="page wide">
       <div class="row sm muted" style="margin-bottom:8px"><a href="#/orders/rfqs" class="row">${I('chevL')} RFQs</a></div>
-      ${DM.header(`${esc(r.no)} ${sbadge(r.status)}`, `${esc(pn(r.partyId))} · ${esc(r.subject || '')}`, acts)}
-      <div class="rfq-grid"><div class="col" style="gap:16px">
+      ${DM.header(`${DM.mono(r.no)} ${sbadge(r.status)}`, `${esc(pn(r.partyId))} · ${esc(r.subject || '')}`, acts)}
+      <div class="grid g4" style="margin-bottom:14px">${DM.statCard('Lines', r.lines.length, unresolved ? unresolved + ' need attention' : 'All matched', 'list', { tone: unresolved ? 'down' : 'up' })}${DM.statCard('Value', fmt.inr(r.total || total(r)), 'matched lines only', 'rupee')}${DM.statCard('Due', fmt.date(r.due), r.status === 'won' || r.status === 'lost' ? 'Closed' : 'Respond by then', 'calendar')}${DM.statCard('Source', (SRC[r.source.type] || [0, r.source.type])[1], 'received ' + fmt.date(r.receivedAt), (SRC[r.source.type] || ['file'])[0])}</div>
+      <div class="rfq-grid"><div class="col" style="gap:14px">
         <div class="card"><div class="card-h"><h3 class="grow">Original request</h3><span class="badge outline">${I((SRC[r.source.type] || ['file'])[0])}${(SRC[r.source.type] || [0, r.source.type])[1]}</span></div><div class="rfq-src">${sourcePreview(r)}</div></div>
-        <div class="card"><div class="card-h"><h3 class="grow">Line items</h3>${unresolved ? DM.badge(unresolved + ' need attention', 'amber', true) : DM.badge('All lines matched', 'green', true)}${DM.btn('Add line', 'rfq-addline', { cls: 'outline sm', arg: r.id, icon: 'plus' })}</div>
+        <div class="card"><div class="card-h"><h3 class="grow">Line items</h3>${unresolved ? DM.status(unresolved + ' need attention', 'amber') : DM.status('All lines matched', 'green')}${DM.btn('Add line', 'rfq-addline', { cls: 'outline sm', arg: r.id, icon: 'plus' })}</div>
           <div style="overflow:auto"><table class="tbl"><thead><tr><th>#</th><th>As written</th><th>Matched product</th><th>Confidence</th><th class="num">Qty</th><th class="num">Rate (₹)</th><th class="num">Amount</th><th></th></tr></thead><tbody>${cols}</tbody></table></div>
           <div class="row" style="padding:12px 16px;border-top:1px solid var(--border)"><span class="muted sm">${r.lines.length} lines</span><span class="right b mono" style="font-size:15px">Total ${fmt.inr(r.total)}</span></div></div>
       </div>
-      <div class="col" style="gap:16px">
+      <div class="col" style="gap:14px">
         <div class="card pad"><h3 style="margin-bottom:10px">Details</h3><dl class="kv">
           <dt>Customer</dt><dd><a href="#/crm/accounts/${esc(r.partyId)}" class="b">${esc(pn(r.partyId))}</a></dd>
           <dt>City</dt><dd>${esc(party.city || '—')}</dd><dt>Received</dt><dd>${fmt.dt(r.receivedAt)}</dd><dt>Due</dt><dd>${fmt.date(r.due)}</dd>
           <dt>Owner</dt><dd>${esc(un(r.owner))}</dd><dt>Credit terms</dt><dd>${esc(party.terms || '—')}</dd></dl></div>
         <div class="card pad"><h3 style="margin-bottom:8px">Status</h3><div class="col" style="gap:6px">${Object.entries(STATUS).map(([k, v]) => `<button class="row sm" style="padding:6px 8px;border-radius:8px;${r.status === k ? 'background:var(--muted);font-weight:600' : ''}" data-act="rfq-status" data-arg="${r.id}|${k}">${r.status === k ? I('check') : '<span style="width:16px"></span>'}${v[0]}</button>`).join('')}</div></div>
-        ${q ? `<div class="card pad"><h3 style="margin-bottom:6px">Quote</h3><div class="row"><span class="b">${esc(q.no)}</span>${DM.badge(q.status.replace('_', ' '), q.status === 'sent' ? 'green' : 'amber', true)}</div><div class="muted sm" style="margin:4px 0 10px">${fmt.inr(q.total)} · margin ${q.marginPct}%</div>${DM.btn('Open quote', '', { cls: 'outline sm', go: '/quotes/' + q.id })}</div>` : ''}
+        ${q ? `<div class="card pad"><h3 style="margin-bottom:6px">Quote</h3><div class="row"><span class="b">${esc(q.no)}</span>${DM.status(q.status.replace('_', ' '), q.status === 'sent' ? 'green' : 'amber')}</div><div class="muted sm" style="margin:4px 0 10px">${fmt.inr(q.total)} · margin ${q.marginPct}%</div>${DM.btn('Open quote', '', { cls: 'outline sm', go: '/quotes/' + q.id })}</div>` : ''}
       </div></div></div>`;
   }
   const lineOf = (el) => { const r = get(el.dataset.r); return r && [r, r.lines[+el.dataset.i]]; };
@@ -179,7 +185,7 @@
     un ? DM.confirm('Some lines are unmatched', `${un} line(s) have no product and will be left out of the quote.`, go, 'Create quote anyway') : go();
   });
 
-  DM.page('/orders/rfqs', { title: 'RFQs', render: list });
+  DM.page('/orders/rfqs', { title: 'RFQs', crumb: 'RFQs', render: list });
   DM.page('/orders/rfqs/:id', { title: 'RFQ', crumb: (p) => p.id, render: detail });
   DM.searchProviders.push((q) => (DM.S.rfqs || []).filter((r) => (r.no + pn(r.partyId) + (r.subject || '')).toLowerCase().includes(q)).slice(0, 5).map((r) => ({ label: r.no + ' · ' + pn(r.partyId), sub: 'RFQ', icon: 'sheet', url: '/orders/rfqs/' + r.id })));
 })();

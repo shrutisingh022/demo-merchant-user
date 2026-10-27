@@ -1,111 +1,184 @@
-/* Workflows: list + node-canvas builder; Governance: policy, workflows, autonomy, approvals. */
+/* Workflows: list + node-canvas builder (live NuHome design); Governance: policy, workflows, autonomy, approvals. */
 (function () {
   const { esc, icon: I, fmt } = DM;
   const st = document.createElement('style'); st.dataset.for = 'workflows';
   st.textContent = `
-  .wf-wrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;height:100%;min-height:0}
-  .wf-canvas{position:relative;overflow:auto;background-color:#fafafa;background-image:radial-gradient(#d4d4d4 1px,transparent 1px);background-size:20px 20px}
-  .wf-inner{position:relative;width:1400px;height:900px}
-  .wf-inner svg{position:absolute;inset:0;pointer-events:none}
-  .wf-node{position:absolute;width:210px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 12px;cursor:grab;user-select:none;box-shadow:0 1px 2px rgba(0,0,0,.04);transition:box-shadow .14s,border-color .14s}
-  .wf-node:hover{box-shadow:0 4px 14px rgba(0,0,0,.08)}.wf-node.sel{border-color:#171717;box-shadow:0 0 0 1px #171717}
-  .wf-node.run{border-color:var(--info);box-shadow:0 0 0 3px var(--info-tint),0 0 0 4px var(--info)}.wf-node.ok{border-color:var(--success)}
-  .wf-node .tp{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;display:flex;gap:5px;align-items:center}
-  .wf-node .lb{font-weight:500;font-size:13px;margin-top:3px}.wf-node .dt{font-size:12px;color:var(--muted-foreground);margin-top:1px}
-  .wf-node .ok-mark{position:absolute;top:-8px;right:-8px;width:18px;height:18px;border-radius:50%;background:var(--success);color:#fff;display:none;place-items:center}.wf-node.ok .ok-mark{display:grid}
-  .wf-side{border-left:1px solid var(--border);overflow:auto;padding:16px;background:#fff}
-  .wf-tools{position:absolute;left:12px;top:12px;display:flex;gap:6px;z-index:3}
-  .t-trigger{color:var(--info)}.t-condition{color:#9a6208}.t-action{color:#0b7a4e}.t-delay{color:#6d28d9}
+  .ag-tile{width:30px;height:30px;border-radius:8px;background:#171717;color:#fff;display:grid;place-items:center;font-weight:700;flex:none}
+  .wfrow{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;margin-bottom:10px;transition:border-color .14s}.wfrow:hover{border-color:#bdbdbd}
+  .wfpage{display:flex;flex-direction:column;height:100%;min-height:0}
+  .wf-top{display:flex;align-items:center;gap:10px;padding:0 14px;height:50px;border-bottom:1px solid var(--border);flex:none}
+  .wf-top .nm{font-weight:600;font-size:14px}
+  .wf-banner{font-size:12px;color:var(--muted-foreground);padding:8px 16px;border-bottom:1px solid #f0f0f0;flex:none}
+  .wf-canvas{position:relative;flex:1;min-height:0;overflow:hidden;background-color:#fff;background-image:radial-gradient(#d9d9d9 1px,transparent 1px);background-size:18px 18px;cursor:grab}
+  .wf-canvas.panning{cursor:grabbing}
+  .wf-vp{position:absolute;left:0;top:0;transform-origin:0 0}
+  #wf-edges>svg{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+  .wf-node{position:absolute;width:200px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:8px 10px 9px;cursor:pointer;user-select:none;box-shadow:0 1px 2px rgba(0,0,0,.04);transition:box-shadow .14s,border-color .14s}
+  .wf-node:hover{box-shadow:0 4px 14px rgba(0,0,0,.09)}.wf-node.run{border-color:var(--info);box-shadow:0 0 0 3px var(--info-tint),0 0 0 4px var(--info)}.wf-node.ok{border-color:var(--success)}
+  .wf-node .h{display:flex;align-items:center;gap:7px}.wf-node .ti{width:20px;height:20px;border-radius:6px;display:grid;place-items:center;flex:none}.wf-node .ti svg.i{width:12px;height:12px}
+  .wf-node .tl{font-size:12px;font-weight:600}.wf-node .cn{margin-left:auto;display:flex;align-items:center;gap:4px;border:1px solid var(--border);border-radius:6px;padding:0 5px;height:17px;font-size:10px;color:#525252;background:#fff}.wf-node .cn svg.i{width:10px;height:10px}
+  .wf-node .b1{font-size:11.5px;margin-top:6px;line-height:1.3}.wf-node .b2{font-size:11px;color:var(--muted-foreground);margin-top:2px;line-height:1.3}
+  .ti.trigger{background:#f4f4f5;color:#262626}.ti.decision{background:#fef3c7;color:#b45309}.ti.action{background:#d1fae5;color:#047857}.ti.delay{background:#ede9fe;color:#6d28d9}.ti.end{background:#fee2e2;color:#b91c1c}
+  .wf-plus{position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;border:1px solid #cfcfcf;display:grid;place-items:center;transform:translate(-50%,-50%);cursor:pointer;color:#525252;z-index:2}.wf-plus:hover{background:#171717;color:#fff;border-color:#171717}.wf-plus svg.i{width:10px;height:10px}
+  .wf-lab{position:absolute;transform:translate(-50%,-50%);font-size:9.5px;font-weight:600;letter-spacing:.04em;padding:1px 6px;border-radius:999px;background:#fff;border:1px solid;z-index:2}.wf-lab.t{color:#0b7a4e;border-color:#a7e3c4}.wf-lab.f{color:#b42318;border-color:#f3b4ae}
+  .wf-zoom{position:absolute;left:14px;bottom:14px;display:flex;flex-direction:column;border:1px solid var(--border);border-radius:8px;background:#fff;overflow:hidden;z-index:5}
+  .wf-zoom button{width:30px;height:30px;display:grid;place-items:center;border-bottom:1px solid var(--border)}.wf-zoom button:last-child{border:0}.wf-zoom button:hover{background:var(--muted)}
+  .wf-mini{position:absolute;right:14px;bottom:14px;width:168px;height:108px;border:1px solid var(--border);border-radius:8px;background:#fff;z-index:5;overflow:hidden}
   .opt{display:flex;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;cursor:pointer;align-items:flex-start;width:100%;text-align:left}.opt:hover{background:var(--muted)}.opt.on{border-color:#171717;box-shadow:0 0 0 1px #171717 inset}
   .gv-seg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}.gv-seg button{padding:5px 11px;font-size:12.5px;color:var(--muted-foreground);border-right:1px solid var(--border)}.gv-seg button:last-child{border:0}.gv-seg button.on{background:#171717;color:#fff}
-  .gv-two{grid-template-columns:minmax(0,1fr) 340px;align-items:start}@media(max-width:1100px){.gv-two{grid-template-columns:1fr}}
-  @media(max-width:1100px){.wf-wrap{grid-template-columns:1fr}.wf-side{border-left:0;border-top:1px solid var(--border)}}`;
+  .gv-two{grid-template-columns:minmax(0,1fr) 340px;align-items:start}@media(max-width:1100px){.gv-two{grid-template-columns:1fr}}`;
   document.head.appendChild(st);
 
-  const U = () => (DM.ui.wf = DM.ui.wf || { sel: null, q: '', filter: 'all', run: false });
+  const U = () => (DM.ui.wf = DM.ui.wf || { view: {}, hist: {}, dirty: {}, run: false });
   const wfs = () => DM.S.workflows || (DM.S.workflows = []);
-  const TYPE = { trigger: ['Trigger', 'zap'], condition: ['Condition', 'filter'], action: ['Action', 'check'], delay: ['Delay', 'clock'] };
+  const TYPE = { trigger: ['Trigger', 'zap'], decision: ['Decision', 'filter'], action: ['Action', 'send'], delay: ['Delay', 'clock'], end: ['End', 'flag'] };
   const LIB = {
-    trigger: [['New WhatsApp message', 'A customer messages any connected channel'], ['New RFQ received', 'An RFQ lands by email, PDF or WhatsApp'], ['Order confirmed', 'An order moves to Confirmed'], ['Draft order created', 'Anuma drafts an order from a chat'], ['Schedule', 'Every day at a set time'], ['Stock below threshold', 'A product falls under its reorder level']],
-    condition: [['Order value above ₹…', 'Branch on order total'], ['Match confidence below floor', 'Uses the escalation policy'], ['Party is over credit limit', 'Compare outstanding to credit limit'], ['Product in category', 'Match a catalogue category'], ['Decision (custom)', 'Compare any two fields']],
-    action: [['Send WhatsApp message', 'Reply on the same channel'], ['Create draft order', 'Turn parsed lines into a draft'], ['Assign to a human', 'Hand the case to a teammate'], ['Request approval', 'Ask an approver before continuing'], ['Push to ERP', 'Post the order to Tally / Coralio'], ['Add row to Google Sheet', 'Append to a connected sheet'], ['Send email', 'Email the party or an internal team'], ['Create quote', 'Build a quote from RFQ lines']],
+    decision: [['Order value above ₹…', 'Branch on order total'], ['Match confidence below floor', 'Uses the escalation policy'], ['Party is over credit limit', 'Compare outstanding to credit limit'], ['Product in category', 'Match a catalogue category'], ['Status is Confirmed', 'Compare any two fields']],
+    action: [['Send WhatsApp message', 'Reply on the same channel'], ['Create draft order', 'Turn parsed lines into a draft'], ['Assign to a human', 'Hand the case to a teammate'], ['Request approval', 'Ask an approver before continuing'], ['Push order to ERP', 'Post the order to Tally / Coral ERP'], ['Add row to Google Sheet', 'Append to a connected sheet'], ['Send email', 'Email the party or an internal team'], ['Create quote', 'Build a quote from RFQ lines']],
     delay: [['Wait 30 minutes', 'Pause the run'], ['Wait 1 day', 'Pause the run'], ['Wait until 9:00 AM', 'Pause until the next morning']],
+    trigger: [['New WhatsApp message', 'A customer messages any connected channel'], ['RFQ status changed', 'An RFQ moves to a new status'], ['Order status changed', 'An order moves to a new status'], ['Draft order status changed', 'Anuma drafts or updates an order'], ['Schedule', 'Every day at a set time'], ['Stock below threshold', 'A product falls under its reorder level']],
   };
+  const NW = 200, NH = 72, DX = 280, DY = 120;
+  const dmy = (d) => { const m = String(d || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}/${m[1]}` : '—'; };
+  const today = () => new Date().toISOString().slice(0, 10);
 
-  function seedNodes(w) {
-    const t = w.trigger || 'New WhatsApp message';
-    w.nodes = [{ id: 'n1', type: 'trigger', label: t, detail: 'Starts the workflow', x: 60, y: 80 }, { id: 'n2', type: 'condition', label: 'Match confidence below floor', detail: 'Uses escalation policy', x: 360, y: 80 }, { id: 'n3', type: 'action', label: 'Assign to a human', detail: 'ASM on duty', x: 660, y: 20 }, { id: 'n4', type: 'action', label: 'Create draft order', detail: 'From parsed lines', x: 660, y: 160 }];
-    w.edges = [{ from: 'n1', to: 'n2' }, { from: 'n2', to: 'n3', label: 'Yes' }, { from: 'n2', to: 'n4', label: 'No' }];
+  /* ── model: normalise any seed shape into Trigger → Decision → Action → End ── */
+  function layout(w) {
+    const root = w.nodes.find((n) => n.type === 'trigger') || w.nodes[0]; if (!root) return;
+    const out = (id) => w.edges.filter((e) => e.from === id).map((e) => e.to);
+    const depth = { [root.id]: 0 }; const q = [root.id]; let guard = 0;
+    while (q.length && guard++ < 800) { const id = q.shift(); out(id).forEach((t) => { if (depth[t] == null || depth[t] < depth[id] + 1) { depth[t] = depth[id] + 1; q.push(t); } }); }
+    let row = 0; const ypos = {}; const seen = new Set();
+    const place = (id) => { if (seen.has(id)) return ypos[id]; seen.add(id); const ys = []; out(id).forEach((k) => { ys.push(seen.has(k) ? ypos[k] : place(k)); }); ypos[id] = ys.length ? (Math.min(...ys) + Math.max(...ys)) / 2 : row++; return ypos[id]; };
+    place(root.id); w.nodes.forEach((n) => { if (!seen.has(n.id)) { depth[n.id] = 0; place(n.id); } });
+    w.nodes.forEach((n) => { n.x = (depth[n.id] || 0) * DX; n.y = (ypos[n.id] || 0) * DY; });
   }
-  const ensure = (w) => { if (!w.nodes || !w.nodes.length) seedNodes(w); w.edges = w.edges || []; w.nodes.forEach((n, i) => { if (n.x == null) { n.x = 60 + (i % 4) * 300; n.y = 60 + Math.floor(i / 4) * 140; } }); return w; };
+  function ensure(w) {
+    if (w._g) return w;
+    w.nodes = (w.nodes || []).map((n) => Object.assign({}, n, { type: n.type === 'condition' ? 'decision' : n.type }));
+    w.edges = (w.edges || []).map((e) => Object.assign({}, e, { label: e.label === 'Yes' ? 'TRUE' : e.label === 'No' ? 'FALSE' : e.label }));
+    if (!w.nodes.length) w.nodes = [{ id: 'n1', type: 'trigger', label: w.trigger || 'New WhatsApp message' }];
+    w.nodes.forEach((n) => { if (n.type === 'decision' && !n.detail) n.detail = '1 condition in 1 group'; });
+    const addEnd = (from, label) => { const id = DM.uid('n'); w.nodes.push({ id, type: 'end', label: 'End of the workflow' }); w.edges.push({ from, to: id, label }); };
+    w.nodes.filter((n) => n.type === 'decision').forEach((d) => { const o = w.edges.filter((e) => e.from === d.id); if (o.length === 1) { if (!o[0].label) o[0].label = 'TRUE'; addEnd(d.id, 'FALSE'); } else o.forEach((e, i) => { if (!e.label) e.label = i === 0 ? 'TRUE' : 'FALSE'; }); });
+    w.nodes.filter((n) => n.type !== 'end' && n.type !== 'decision' && !w.edges.some((e) => e.from === n.id)).forEach((l) => addEnd(l.id));
+    w.version = w.version || 1; w.updated = w.updated || today();
+    w.versions = w.versions || Array.from({ length: w.version }, (_, i) => ({ v: w.version - i, at: w.updated, by: i === 0 ? 'Demo Admin' : 'Neil Batavia' }));
+    layout(w); w._g = true; return w;
+  }
+  const stats = (w) => {
+    const root = w.nodes.find((n) => n.type === 'trigger') || w.nodes[0]; const m = {}; if (!root) return m;
+    const total = root.count != null ? root.count : (w.runs || 0); m[root.id] = { count: total, pct: 100 }; const q = [root.id]; let g = 0;
+    while (q.length && g++ < 400) { const id = q.shift(); const o = w.edges.filter((e) => e.from === id); o.forEach((e, i) => { const t = DM.by(w.nodes, e.to); if (!t || m[t.id]) return; const share = t.count != null ? null : o.length === 1 ? 1 : e.label === 'FALSE' ? 0.29 : o.length === 2 ? 0.71 : 1 / o.length; const c = t.count != null ? t.count : Math.round(m[id].count * share); m[t.id] = { count: c, pct: t.pct != null ? t.pct : total ? Math.round((c / total) * 100) : 0 }; q.push(t.id); }); }
+    return m;
+  };
+  const snap = (w) => JSON.stringify({ nodes: w.nodes, edges: w.edges });
+  const hist = (w) => (U().hist[w.id] = U().hist[w.id] || { past: [], future: [] });
+  function commit(w, before) { const h = hist(w); h.past.push(before); h.future = []; U().dirty[w.id] = true; }
 
   /* ── list ── */
+  const badgeOf = (w) => (w.status === 'active' ? '<span class="badge green">Live</span>' : w.status === 'paused' ? '<span class="badge amber">Paused</span>' : '<span class="badge">Draft</span>');
   DM.page('/workflows', { title: 'Workflows', render() {
-    const u = U(); let rows = wfs().filter((w) => (u.filter === 'all' || w.status === u.filter) && (!u.q || w.name.toLowerCase().includes(u.q.toLowerCase())));
-    return `<div class="page">${DM.header('Workflows', 'Automations that run when something happens — replies, drafts, approvals, ERP posts.', DM.btn('New workflow', 'wf-new', { icon: 'plus' }))}
-      <div class="row" style="margin-bottom:12px">${DM.searchBox('wf-q', 'Search workflows…', u.q)}${DM.pills([{ key: 'all', label: 'All' }, { key: 'active', label: 'Active' }, { key: 'draft', label: 'Draft' }, { key: 'paused', label: 'Paused' }], u.filter, 'wf-filter')}</div>
-      ${DM.table([{ label: 'Name', render: (w) => `<div class="b">${esc(w.name)}</div><div class="xs muted">${(w.nodes || []).length || 4} steps</div>` }, { label: 'Trigger', render: (w) => `<span class="row gap4">${I('zap')} ${esc(w.trigger || '—')}</span>` }, { label: 'Status', render: (w) => DM.badge(w.status, w.status === 'active' ? 'green' : w.status === 'paused' ? 'amber' : '', true) }, { label: 'Runs', num: true, render: (w) => fmt.num(w.runs || 0) }, { label: 'Last run', render: (w) => `<span class="muted">${w.lastRun ? esc(/^\d{4}-/.test(w.lastRun) ? fmt.dt(w.lastRun) : w.lastRun) : 'Never'}</span>` }, { label: '', w: '90px', render: (w) => `<div class="row" style="justify-content:flex-end">${DM.switch(w.status === 'active', 'wf-toggle', w.id)}<button class="btn ghost icon sm" data-act="wf-menu" data-arg="${esc(w.id)}">${I('more')}</button></div>` }], rows, { go: (w) => '/workflows/' + w.id, empty: 'No workflows match.' })}</div>`;
+    const list = wfs();
+    return `<div class="page">${DM.header('Workflows', 'Automations that start from an event and run step by step: decide, wait, message, approve.', DM.btn('New workflow', 'wf-new', { icon: 'plus' }))}
+      ${list.length ? list.map((w) => `<div class="card wfrow fadein" data-go="/workflows/${esc(w.id)}"><div class="grow" style="min-width:0"><div class="b trunc" style="font-size:13.5px">${esc(w.name)}</div><div class="xs muted">v${w.version || 1} · updated ${dmy(w.updated || w.lastRun)}</div></div>${badgeOf(w)}<button class="btn ghost icon sm" data-act="wf-del" data-arg="${esc(w.id)}" title="Delete">${I('trash')}</button></div>`).join('') : DM.empty('workflow', 'No workflows yet', 'Create one to automate what happens when an order, RFQ or message arrives.')}</div>`;
   } });
-  DM.input('wf-q', (v) => { U().q = v; DM.render(); });
-  DM.act('wf-filter', (el) => { U().filter = el.dataset.arg; DM.render(); });
-  DM.act('wf-toggle', (el, ev) => { ev.stopPropagation(); const w = DM.by(wfs(), el.dataset.arg); w.status = w.status === 'active' ? 'paused' : 'active'; DM.toast(w.name + (w.status === 'active' ? ' is on' : ' paused')); DM.render(); });
-  DM.act('wf-menu', (el, ev) => { ev.stopPropagation(); const w = DM.by(wfs(), el.dataset.arg); DM.menu(el, [{ label: 'Open builder', icon: 'workflow', run: () => DM.go('/workflows/' + w.id) }, { label: 'Duplicate', icon: 'copy', run: () => { const c = DM.clone(ensure(w)); c.id = DM.uid('wf'); c.name += ' (copy)'; c.status = 'draft'; c.runs = 0; c.lastRun = null; wfs().push(c); DM.toast('Duplicated'); DM.render(); } }, { label: 'Delete', icon: 'trash', run: () => DM.confirm('Delete workflow?', `<b>${esc(w.name)}</b> will be removed.`, () => { DM.S.workflows = wfs().filter((x) => x.id !== w.id); DM.toast('Deleted'); DM.render(); }, 'Delete') }]); });
-  DM.act('wf-new', () => DM.modal({ title: 'New workflow', body: `<div class="col gap12">${DM.field('Name', 'name', { ph: 'Escalate big orders' })}<div class="field"><label>Trigger</label><select class="select" name="trigger">${LIB.trigger.map((t) => `<option>${esc(t[0])}</option>`).join('')}</select></div></div>`, actions: [{ label: 'Cancel', cls: 'outline' }, { label: 'Create & open', run: (m) => { const f = DM.formData(m); if (!f.name.trim()) return false; const w = { id: DM.uid('wf'), name: f.name.trim(), status: 'draft', trigger: f.trigger, runs: 0, lastRun: null, nodes: [{ id: 'n1', type: 'trigger', label: f.trigger, detail: 'Starts the workflow', x: 60, y: 120 }], edges: [] }; wfs().push(w); DM.go('/workflows/' + w.id); } }] }));
+  DM.act('wf-del', (el, ev) => { ev.stopPropagation(); const w = DM.by(wfs(), el.dataset.arg); DM.confirm('Delete workflow?', `<b>${esc(w.name)}</b> will be removed.`, () => { DM.S.workflows = wfs().filter((x) => x.id !== w.id); DM.toast('Workflow deleted'); DM.go('/workflows'); }, 'Delete'); });
+  DM.act('wf-new', () => DM.modal({ title: 'New workflow', body: `<div class="col gap12">${DM.field('Name', 'name', { ph: 'Escalate big orders' })}<div class="field"><label>Starts when</label><select class="select" name="trigger">${LIB.trigger.map((t) => `<option>${esc(t[0])}</option>`).join('')}</select></div></div>`, actions: [{ label: 'Cancel', cls: 'outline' }, { label: 'Create & open', run: (m) => { const f = DM.formData(m); if (!f.name.trim()) return false; const w = { id: DM.uid('wf'), name: f.name.trim(), status: 'draft', version: 1, updated: today(), trigger: f.trigger, runs: 0, lastRun: null, nodes: [{ id: 'n1', type: 'trigger', label: f.trigger }], edges: [] }; wfs().push(w); ensure(w); DM.go('/workflows/' + w.id); } }] }));
 
   /* ── builder ── */
-  const NW = 210, NH = 66;
-  const edgePath = (a, b) => { const x1 = a.x + NW, y1 = a.y + NH / 2, x2 = b.x, y2 = b.y + NH / 2, dx = Math.max(40, Math.abs(x2 - x1) / 2); return `M${x1} ${y1} C${x1 + dx} ${y1},${x2 - dx} ${y2},${x2} ${y2}`; };
-  function edgesSvg(w) {
-    return `<svg width="1400" height="900"><defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#a3a3a3"/></marker></defs>${w.edges.map((e) => { const a = DM.by(w.nodes, e.from), b = DM.by(w.nodes, e.to); if (!a || !b) return ''; const mx = (a.x + NW + b.x) / 2, my = (a.y + b.y) / 2 + NH / 2; return `<path d="${edgePath(a, b)}" fill="none" stroke="#a3a3a3" stroke-width="1.6" marker-end="url(#arr)"/>${e.label ? `<g><rect x="${mx - 15}" y="${my - 9}" width="30" height="18" rx="9" fill="#fff" stroke="#e5e5e5"/><text x="${mx}" y="${my + 4}" text-anchor="middle" font-size="10.5" fill="#525252">${esc(e.label)}</text></g>` : ''}`; }).join('')}</svg>`;
+  const bez = (a, b, t) => { const x1 = a.x + NW, y1 = a.y + NH / 2, x2 = b.x, y2 = b.y + NH / 2, dx = Math.max(40, Math.abs(x2 - x1) / 2); const p = [[x1, y1], [x1 + dx, y1], [x2 - dx, y2], [x2, y2]]; const u = 1 - t; return [u * u * u * p[0][0] + 3 * u * u * t * p[1][0] + 3 * u * t * t * p[2][0] + t * t * t * p[3][0], u * u * u * p[0][1] + 3 * u * u * t * p[1][1] + 3 * u * t * t * p[2][1] + t * t * t * p[3][1], `M${x1} ${y1} C${x1 + dx} ${y1},${x2 - dx} ${y2},${x2} ${y2}`]; };
+  function edgesHtml(w) {
+    let svg = '', over = '';
+    w.edges.forEach((e, i) => { const a = DM.by(w.nodes, e.from), b = DM.by(w.nodes, e.to); if (!a || !b) return; const m = bez(a, b, 0.5); svg += `<path d="${m[2]}" fill="none" stroke="#a3a3a3" stroke-width="1.4" stroke-dasharray="4 4"/>`; over += `<div class="wf-plus" data-act="wf-insert" data-arg="${i}" style="left:${m[0]}px;top:${m[1]}px" title="Add a step here">${I('plus')}</div>`; if (e.label) { const l = bez(a, b, 0.22); over += `<div class="wf-lab ${e.label === 'TRUE' ? 't' : 'f'}" style="left:${l[0]}px;top:${l[1]}px">${esc(e.label)}</div>`; } });
+    return `<svg width="1" height="1">${svg}</svg>${over}`;
   }
-  const nodeHtml = (n, sel) => `<div class="wf-node ${n.id === sel ? 'sel' : ''}" data-nid="${esc(n.id)}" style="left:${n.x}px;top:${n.y}px"><span class="ok-mark">${I('check').replace('class="i ', 'style="width:11px;height:11px" class="i ')}</span><div class="tp t-${esc(n.type)}">${I(TYPE[n.type][1]).replace('class="i ', 'style="width:12px;height:12px" class="i ')} ${TYPE[n.type][0]}</div><div class="lb trunc">${esc(n.label)}</div><div class="dt trunc">${esc(n.detail || '')}</div></div>`;
-  function side(w) {
-    const n = DM.by(w.nodes, U().sel);
-    if (!n) return `<div class="b">Workflow</div><div class="col gap12" style="margin-top:10px">${DM.field('Name', 'wf-name', { value: w.name }).replace('name="wf-name"', 'data-input="wf-name"')}<dl class="kv" style="grid-template-columns:90px 1fr"><dt>Status</dt><dd>${DM.badge(w.status, w.status === 'active' ? 'green' : '', true)}</dd><dt>Steps</dt><dd>${w.nodes.length}</dd><dt>Runs</dt><dd>${fmt.num(w.runs || 0)}</dd><dt>Last run</dt><dd>${w.lastRun ? esc(/^\d{4}-/.test(w.lastRun) ? fmt.dt(w.lastRun) : w.lastRun) : 'Never'}</dd></dl><p class="xs muted">Drag nodes to rearrange. Click a node to edit it, or use “Add step” to extend the flow.</p></div>`;
-    const outs = w.edges.filter((e) => e.from === n.id).length;
-    return `<div class="row"><div class="b grow">${TYPE[n.type][0]}</div><button class="btn ghost icon sm" data-act="wf-desel">${I('x')}</button></div><div class="col gap12" style="margin-top:10px"><div class="field"><label>Label</label><input class="input" data-input="wf-nlabel" value="${esc(n.label)}"></div><div class="field"><label>Details</label><textarea class="textarea" rows="3" data-input="wf-ndetail">${esc(n.detail || '')}</textarea></div>${n.type === 'condition' ? `<div class="field"><label>Threshold</label><input class="input" data-input="wf-nthr" value="${esc(n.threshold || '')}" placeholder="e.g. 50000"></div>` : ''}<div class="sep" style="margin:4px 0"></div><button class="btn outline sm" data-act="wf-add" data-arg="${esc(n.id)}">${I('plus')} Add step after this</button>${n.type !== 'trigger' ? `<button class="btn outline sm" data-act="wf-ndel" data-arg="${esc(n.id)}" style="color:var(--destructive)">${I('trash')} Delete step</button>` : ''}<div class="xs muted">${outs} outgoing connection${outs === 1 ? '' : 's'}</div></div>`;
+  const nodeHtml = (n, S) => { const T = TYPE[n.type] || TYPE.action; const c = S[n.id]; return `<div class="wf-node" data-nid="${esc(n.id)}" style="left:${n.x}px;top:${n.y}px"><div class="h"><span class="ti ${esc(n.type)}">${I(T[1])}</span><span class="tl">${T[0]}</span>${c ? `<span class="cn">${I('users')}${c.count} (${c.pct}%)</span>` : ''}</div><div class="b1">${esc(n.label)}</div>${n.detail && n.detail !== n.label && n.type !== 'end' && n.type !== 'trigger' ? `<div class="b2">${esc(n.detail)}</div>` : ''}${n.source ? `<div class="b2">Source: ${esc(n.source)}</div>` : ''}</div>`; };
+  const bbox = (w) => { const xs = w.nodes.map((n) => n.x), ys = w.nodes.map((n) => n.y); return { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs) + NW, y1: Math.max(...ys) + NH }; };
+  function miniHtml(w, v, cw, ch) {
+    const b = bbox(w); const pw = 168, ph = 108, pad = 120; const W = b.x1 - b.x0 + pad * 2, H = b.y1 - b.y0 + pad * 2; const sc = Math.min(pw / W, ph / H);
+    const col = { trigger: '#171717', decision: '#f4b23e', action: '#13a269', delay: '#7c3aed', end: '#e03a3a' };
+    const ox = (pw - W * sc) / 2 - (b.x0 - pad) * sc, oy = (ph - H * sc) / 2 - (b.y0 - pad) * sc;
+    const vx = -v.x / v.k, vy = -v.y / v.k, vw = cw / v.k, vh = ch / v.k;
+    return `<svg width="${pw}" height="${ph}">${w.nodes.map((n) => `<rect x="${n.x * sc + ox}" y="${n.y * sc + oy}" width="${NW * sc}" height="${NH * sc * 0.7}" rx="2" fill="${col[n.type] || '#999'}"/>`).join('')}<rect x="${vx * sc + ox}" y="${vy * sc + oy}" width="${vw * sc}" height="${vh * sc}" fill="rgba(0,0,0,.04)" stroke="#a3a3a3" stroke-width="1"/></svg>`;
   }
-  DM.page('/workflows/:id', { title: 'Workflow', crumb: (p) => (DM.by(wfs(), p.id) || {}).name || 'Workflow', render({ params }) {
-    const w = DM.by(wfs(), params.id); if (!w) return `<div class="page"><div class="empty"><h3>Workflow not found</h3><p style="margin-top:10px"><a class="btn outline" href="#/workflows">Back</a></p></div></div>`;
-    ensure(w); const u = U();
-    return `<div class="page-full" style="display:flex;flex-direction:column"><div class="row" style="padding:12px 20px;border-bottom:1px solid var(--border)"><a class="btn ghost sm" href="#/workflows">${I('arrowL')}</a><div class="b" id="wf-title">${esc(w.name)}</div>${DM.badge(w.status, w.status === 'active' ? 'green' : w.status === 'paused' ? 'amber' : '', true)}<div class="right row">${DM.btn('Add step', 'wf-add', { cls: 'outline sm', icon: 'plus', arg: u.sel || '' })}${DM.btn('Test run', 'wf-run', { cls: 'outline sm', icon: 'play', arg: w.id })}${DM.btn(w.status === 'active' ? 'Pause' : 'Publish', 'wf-publish', { cls: 'sm', arg: w.id })}</div></div>
-      <div class="wf-wrap" style="flex:1"><div class="wf-canvas" id="wf-canvas"><div class="wf-inner" id="wf-inner"><div id="wf-edges">${edgesSvg(w)}</div>${w.nodes.map((n) => nodeHtml(n, u.sel)).join('')}</div></div><div class="wf-side" id="wf-side">${side(w)}</div></div></div>`;
-  }, after(view, { params }) {
-    const w = DM.by(wfs(), params.id); if (!w) return; const inner = view.querySelector('#wf-inner'); if (!inner) return;
-    inner.querySelectorAll('.wf-node').forEach((el) => el.addEventListener('mousedown', (e) => {
-      const n = DM.by(w.nodes, el.dataset.nid); const sx = e.clientX, sy = e.clientY, ox = n.x, oy = n.y; let moved = false;
-      const mv = (ev) => { const dx = ev.clientX - sx, dy = ev.clientY - sy; if (Math.abs(dx) + Math.abs(dy) > 3) moved = true; if (!moved) return; n.x = Math.max(0, Math.min(1180, ox + dx)); n.y = Math.max(0, Math.min(820, oy + dy)); el.style.left = n.x + 'px'; el.style.top = n.y + 'px'; view.querySelector('#wf-edges').innerHTML = edgesSvg(w); el.style.cursor = 'grabbing'; };
-      const up = () => { document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); el.style.cursor = ''; if (!moved) { U().sel = n.id; DM.render(); } };
-      document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up); e.preventDefault();
-    }));
-    view.querySelector('#wf-canvas').addEventListener('mousedown', (e) => { if (e.target.id === 'wf-canvas' || e.target.id === 'wf-inner') { if (U().sel) { U().sel = null; DM.render(); } } });
-  } });
   const curW = () => DM.by(wfs(), DM.path().split('/')[2]);
-  DM.input('wf-name', (v) => { const w = curW(); w.name = v; const t = document.getElementById('wf-title'); if (t) t.textContent = v; });
-  DM.input('wf-nlabel', (v) => { const n = DM.by(curW().nodes, U().sel); n.label = v; const el = document.querySelector(`.wf-node[data-nid="${n.id}"] .lb`); if (el) el.textContent = v; if (n.type === 'trigger') curW().trigger = v; });
-  DM.input('wf-ndetail', (v) => { const n = DM.by(curW().nodes, U().sel); n.detail = v; const el = document.querySelector(`.wf-node[data-nid="${n.id}"] .dt`); if (el) el.textContent = v; });
-  DM.input('wf-nthr', (v) => { DM.by(curW().nodes, U().sel).threshold = v; });
-  DM.act('wf-desel', () => { U().sel = null; DM.render(); });
-  DM.act('wf-ndel', (el) => DM.confirm('Delete step?', 'Connections to this step are removed too.', () => { const w = curW(); const id = el.dataset.arg; const ins = w.edges.filter((e) => e.to === id), outs = w.edges.filter((e) => e.from === id); w.edges = w.edges.filter((e) => e.from !== id && e.to !== id); if (ins.length === 1 && outs.length === 1) w.edges.push({ from: ins[0].from, to: outs[0].to }); w.nodes = w.nodes.filter((n) => n.id !== id); U().sel = null; DM.toast('Step deleted'); DM.render(); }, 'Delete'));
-  DM.act('wf-publish', (el) => { const w = DM.by(wfs(), el.dataset.arg); w.status = w.status === 'active' ? 'paused' : 'active'; DM.toast(w.status === 'active' ? 'Workflow published' : 'Workflow paused', 'check'); DM.render(); });
-  DM.act('wf-add', (el) => {
-    const w = curW(); const after = el.dataset.arg || U().sel || (w.nodes[w.nodes.length - 1] || {}).id; let type = 'action', pick = null;
-    const draw = (m) => { m.querySelector('.modal-b').innerHTML = `<div class="pills" style="margin-bottom:12px">${Object.entries(TYPE).map(([k, v]) => `<button class="pill ${k === type ? 'on' : ''}" data-t="${k}">${v[0]}</button>`).join('')}</div><div class="col" style="gap:8px">${LIB[type].map((o, i) => `<button class="opt ${pick === i ? 'on' : ''}" data-o="${i}">${I(TYPE[type][1])}<div><div class="b sm">${esc(o[0])}</div><div class="xs muted">${esc(o[1])}</div></div></button>`).join('')}</div>`; };
-    DM.modal({ title: 'Add step', body: '', lg: false, actions: [{ label: 'Cancel', cls: 'outline' }, { label: 'Add step', run: () => {
+  const banner = (w) => (U().dirty[w.id] ? `Unsaved changes. ${w.status === 'active' ? `Your first save becomes a draft and the live v${w.version} stays as it is.` : 'Save a draft or publish to make them live.'}` : w.hasDraft ? `Draft saved on top of v${w.version}. Publish to replace the live version.` : w.status === 'active' ? 'In use. Change anything: your first save becomes a draft and the live version stays as it is.' : 'Not live yet. Publish when you are ready.');
+  DM.page('/workflows/:id', { title: 'Workflow', crumb: (p) => (DM.by(wfs(), p.id) || {}).name || 'Workflow', render({ params }) {
+    const w = DM.by(wfs(), params.id); if (!w) return `<div class="page"><div class="empty"><h3>Workflow not found</h3><p style="margin-top:10px"><a class="btn outline" href="#/workflows">Back to workflows</a></p></div></div>`;
+    ensure(w); const h = hist(w); const dirty = U().dirty[w.id]; const S = stats(w);
+    return `<div class="wfpage"><div class="wf-top"><a class="btn ghost icon sm" href="#/workflows" title="Back">${I('arrowL')}</a><span class="nm">${esc(w.name)}</span>${badgeOf(w)}<span class="badge outline">v${w.version}</span><span class="sm muted trunc">Triggered by ${esc((w.nodes.find((n) => n.type === 'trigger') || {}).label || w.trigger || '—')}</span>
+      <div class="row gap4 right"><button class="btn ghost icon sm" data-act="wf-undo" ${h.past.length ? '' : 'disabled'} title="Undo">${I('rotate')}</button><button class="btn ghost icon sm" data-act="wf-redo" ${h.future.length ? '' : 'disabled'} title="Redo" style="transform:scaleX(-1)">${I('rotate')}</button><button class="btn ghost icon sm" data-act="wf-history" title="Version history">${I('history')}</button><button class="btn ghost icon sm" data-act="wf-run" data-arg="${esc(w.id)}" title="Test run">${I('wand')}</button><button class="btn ghost icon sm" data-act="wf-more" data-arg="${esc(w.id)}" title="More">${I('more')}</button>
+      <button class="btn outline sm" data-act="wf-save" data-arg="${esc(w.id)}" ${dirty ? '' : 'disabled'}>${I('download')} Save draft</button><button class="btn sm" data-act="wf-publish" data-arg="${esc(w.id)}" ${dirty || w.hasDraft || w.status !== 'active' ? '' : 'disabled'}>${I('rocket')} Publish</button></div></div>
+      <div class="wf-banner" id="wf-banner">${esc(banner(w))}</div>
+      <div class="wf-canvas" id="wf-canvas"><div class="wf-vp" id="wf-vp"><div id="wf-edges">${edgesHtml(w)}</div>${w.nodes.map((n) => nodeHtml(n, S)).join('')}</div>
+        <div class="wf-zoom"><button data-act="wf-zoom" data-arg="in" title="Zoom in">${I('plus')}</button><button data-act="wf-zoom" data-arg="out" title="Zoom out"><svg class="i" viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button><button data-act="wf-zoom" data-arg="fit" title="Fit view">${I('grid')}</button></div><div class="wf-mini" id="wf-mini"></div></div></div>`;
+  }, after(view, { params }) {
+    const w = DM.by(wfs(), params.id); if (!w) return; const cv = view.querySelector('#wf-canvas'), vp = view.querySelector('#wf-vp'); if (!cv) return;
+    const u = U(); let v = u.view[w.id];
+    const fit = () => { const b = bbox(w); const cw = cv.clientWidth, ch = cv.clientHeight; const k = Math.min(1, (cw - 120) / (b.x1 - b.x0), (ch - 140) / (b.y1 - b.y0)); return { k, x: (cw - (b.x1 - b.x0) * k) / 2 - b.x0 * k, y: (ch - (b.y1 - b.y0) * k) / 2 - b.y0 * k }; };
+    if (!v) v = u.view[w.id] = fit();
+    const apply = () => { vp.style.transform = `translate(${v.x}px,${v.y}px) scale(${v.k})`; const mini = view.querySelector('#wf-mini'); if (mini) mini.innerHTML = miniHtml(w, v, cv.clientWidth, cv.clientHeight); };
+    apply(); window.__wfView = { fit: () => { v = u.view[w.id] = fit(); apply(); }, zoom: (f) => { const cx = cv.clientWidth / 2, cy = cv.clientHeight / 2; const nk = Math.max(0.3, Math.min(2, v.k * f)); v.x = cx - (cx - v.x) * (nk / v.k); v.y = cy - (cy - v.y) * (nk / v.k); v.k = nk; apply(); } };
+    cv.addEventListener('wheel', (e) => { e.preventDefault(); const r = cv.getBoundingClientRect(); const cx = e.clientX - r.left, cy = e.clientY - r.top; const nk = Math.max(0.3, Math.min(2, v.k * (e.deltaY < 0 ? 1.1 : 0.9))); v.x = cx - (cx - v.x) * (nk / v.k); v.y = cy - (cy - v.y) * (nk / v.k); v.k = nk; apply(); }, { passive: false });
+    cv.addEventListener('mousedown', (e) => {
+      if (e.target.closest('.wf-zoom,.wf-mini,.wf-plus')) return; const node = e.target.closest('.wf-node');
+      if (node) {
+        const n = DM.by(w.nodes, node.dataset.nid); const sx = e.clientX, sy = e.clientY, ox = n.x, oy = n.y; let moved = false; const before = snap(w);
+        const mv = (ev) => { const dx = (ev.clientX - sx) / v.k, dy = (ev.clientY - sy) / v.k; if (Math.abs(dx) + Math.abs(dy) > 3) moved = true; if (!moved) return; n.x = ox + dx; n.y = oy + dy; node.style.left = n.x + 'px'; node.style.top = n.y + 'px'; view.querySelector('#wf-edges').innerHTML = edgesHtml(w); apply(); };
+        const up = () => { document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); if (moved) { commit(w, before); DM.render(); } else editNode(w, n.id); };
+        document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up); e.preventDefault(); return;
+      }
+      const sx = e.clientX, sy = e.clientY, ox = v.x, oy = v.y; cv.classList.add('panning');
+      const mv = (ev) => { v.x = ox + ev.clientX - sx; v.y = oy + ev.clientY - sy; apply(); };
+      const up = () => { cv.classList.remove('panning'); document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); };
+      document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up); e.preventDefault();
+    });
+  } });
+  DM.act('wf-zoom', (el) => { const z = window.__wfView; if (!z) return; el.dataset.arg === 'fit' ? z.fit() : z.zoom(el.dataset.arg === 'in' ? 1.2 : 1 / 1.2); });
+
+  function editNode(w, id) {
+    const n = DM.by(w.nodes, id); const T = TYPE[n.type];
+    const apps = (DM.S.apps || []).filter((a) => a.state === 'connected').map((a) => a.name);
+    const body = n.type === 'end' ? `<p class="sm muted">This step ends the workflow. Nothing runs after it.</p>` : `<div class="col gap12">${DM.field(n.type === 'decision' ? 'Condition' : 'What it does', 'label', { value: n.label })}${n.type === 'decision' ? '' : DM.field('Notes', 'detail', { value: n.detail && n.detail !== n.label ? n.detail : '', area: true, rows: 2 })}${n.type === 'action' ? `<div class="field"><label>Source</label><select class="select" name="source"><option value="">Anuma</option>${apps.map((a) => `<option ${n.source === a ? 'selected' : ''}>${esc(a)}</option>`).join('')}${n.source && !apps.includes(n.source) ? `<option selected>${esc(n.source)}</option>` : ''}</select></div>` : ''}</div>`;
+    const acts = [{ label: 'Close', cls: 'outline' }];
+    if (n.type !== 'trigger') acts.push({ label: 'Delete step', cls: 'outline', run: () => { const before = snap(w); const ins = w.edges.filter((e) => e.to === id), outs = w.edges.filter((e) => e.from === id); w.edges = w.edges.filter((e) => e.from !== id && e.to !== id); if (ins.length === 1 && outs.length === 1) w.edges.push({ from: ins[0].from, to: outs[0].to, label: ins[0].label }); w.nodes = w.nodes.filter((x) => x.id !== id); layout(w); commit(w, before); DM.toast('Step deleted'); DM.render(); } });
+    if (n.type !== 'end') acts.push({ label: 'Save', run: (m) => { const f = DM.formData(m); if (f.label !== undefined && f.label.trim()) { const before = snap(w); n.label = f.label.trim(); if (f.detail !== undefined) n.detail = f.detail; if (f.source !== undefined) n.source = f.source || undefined; if (n.type === 'trigger') w.trigger = n.label; commit(w, before); DM.render(); } } });
+    DM.modal({ title: `${T[0]} step`, body, actions: acts });
+  }
+  DM.act('wf-insert', (el) => {
+    const w = curW(); const e = w.edges[+el.dataset.arg]; if (!e) return; let type = 'action', pick = null;
+    const draw = (m) => { m.querySelector('.modal-b').innerHTML = `<div class="pills" style="margin-bottom:12px">${['decision', 'action', 'delay'].map((k) => `<button class="pill ${k === type ? 'on' : ''}" data-t="${k}">${TYPE[k][0]}</button>`).join('')}</div><div class="col" style="gap:8px">${LIB[type].map((o, i) => `<button class="opt ${pick === i ? 'on' : ''}" data-o="${i}">${I(TYPE[type][1])}<div><div class="b sm">${esc(o[0])}</div><div class="xs muted">${esc(o[1])}</div></div></button>`).join('')}</div>`; };
+    DM.modal({ title: 'Add a step', body: '', actions: [{ label: 'Cancel', cls: 'outline' }, { label: 'Add step', run: () => {
       if (pick == null) { DM.toast('Pick a step first', 'alert'); return false; }
-      const o = LIB[type][pick]; const from = DM.by(w.nodes, after); const id = DM.uid('n');
-      const n = { id, type, label: o[0], detail: o[1], x: from ? from.x + 300 : 60, y: from ? from.y + (w.edges.filter((e) => e.from === from.id).length * 110) : 80 };
-      if (n.x > 1180) { n.x = from.x; n.y = from.y + 150; }
-      w.nodes.push(n); if (from) w.edges.push({ from: from.id, to: id }); U().sel = id; DM.toast('Step added'); DM.render();
-    } }], onMount: (m) => { draw(m); m.addEventListener('click', (e) => { const t = e.target.closest('[data-t]'), o = e.target.closest('[data-o]'); if (t) { type = t.dataset.t; pick = null; draw(m); } else if (o) { pick = +o.dataset.o; draw(m); } }); } });
+      const o = LIB[type][pick]; const before = snap(w); const id = DM.uid('n'); const n = { id, type, label: o[0], detail: type === 'decision' ? '1 condition in 1 group' : o[1] };
+      if (type === 'action' && /ERP|Tally|Coral/.test(o[0])) n.source = (DM.S.apps || []).find((a) => a.state === 'connected' && /tally|coral/i.test(a.slug + a.name));
+      if (n.source) n.source = n.source.name;
+      w.nodes.push(n); const to = e.to; e.to = id;
+      if (type === 'decision') { w.edges.push({ from: id, to, label: 'TRUE' }); const en = DM.uid('n'); w.nodes.push({ id: en, type: 'end', label: 'End of the workflow' }); w.edges.push({ from: id, to: en, label: 'FALSE' }); } else w.edges.push({ from: id, to, label: undefined });
+      layout(w); commit(w, before); DM.toast('Step added'); DM.render();
+    } }], onMount: (m) => { draw(m); m.addEventListener('click', (ev) => { const t = ev.target.closest('[data-t]'), o = ev.target.closest('[data-o]'); if (t) { type = t.dataset.t; pick = null; draw(m); } else if (o) { pick = +o.dataset.o; draw(m); } }); } });
   });
+  const restore = (w, json) => { const d = JSON.parse(json); w.nodes = d.nodes; w.edges = d.edges; };
+  DM.act('wf-undo', () => { const w = curW(), h = hist(w); if (!h.past.length) return; h.future.push(snap(w)); restore(w, h.past.pop()); U().dirty[w.id] = h.past.length > 0 || U().dirty[w.id]; DM.render(); });
+  DM.act('wf-redo', () => { const w = curW(), h = hist(w); if (!h.future.length) return; h.past.push(snap(w)); restore(w, h.future.pop()); U().dirty[w.id] = true; DM.render(); });
+  DM.act('wf-save', (el) => { const w = DM.by(wfs(), el.dataset.arg); U().dirty[w.id] = false; w.hasDraft = true; DM.toast('Draft saved'); DM.render(); });
+  DM.act('wf-publish', (el) => { const w = DM.by(wfs(), el.dataset.arg); w.version = (w.version || 1) + 1; w.status = 'active'; w.updated = today(); w.hasDraft = false; U().dirty[w.id] = false; (w.versions = w.versions || []).unshift({ v: w.version, at: w.updated, by: 'Demo Admin' }); U().hist[w.id] = { past: [], future: [] }; DM.toast(`Published v${w.version}`, 'check'); DM.render(); });
+  DM.act('wf-history', () => { const w = curW(); DM.modal({ title: 'Version history', body: `<div class="col" style="gap:8px">${(w.versions || []).map((x, i) => `<div class="row card" style="padding:10px 12px"><span class="badge outline">v${x.v}</span><div class="grow sm">${i === 0 && w.status === 'active' ? 'Live version' : 'Earlier version'}<div class="xs muted">${dmy(x.at)} · ${esc(x.by)}</div></div>${i === 0 && w.status === 'active' ? '<span class="badge green">Live</span>' : `<button class="btn outline sm" data-act="wf-restore" data-arg="${x.v}">Restore as draft</button>`}</div>`).join('')}</div>`, actions: [{ label: 'Close', cls: 'outline' }] }); });
+  DM.act('wf-restore', (el) => { const w = curW(); const before = snap(w); layout(w); commit(w, before); DM.closeModal(); DM.toast(`Restored v${el.dataset.arg} as a draft`); DM.render(); });
+  DM.act('wf-more', (el) => { const w = DM.by(wfs(), el.dataset.arg); DM.menu(el, [
+    { label: 'Rename', icon: 'edit', run: () => DM.modal({ title: 'Rename workflow', body: DM.field('Name', 'name', { value: w.name }), actions: [{ label: 'Cancel', cls: 'outline' }, { label: 'Save', run: (m) => { const n = DM.formData(m).name.trim(); if (!n) return false; w.name = n; DM.render(); } }] }) },
+    { label: 'Tidy up layout', icon: 'grid', run: () => { const before = snap(w); layout(w); commit(w, before); delete U().view[w.id]; DM.render(); } },
+    { label: w.status === 'paused' ? 'Resume' : 'Pause', icon: w.status === 'paused' ? 'play' : 'pause', run: () => { w.status = w.status === 'paused' ? 'active' : 'paused'; DM.toast(w.status === 'paused' ? 'Workflow paused' : 'Workflow resumed'); DM.render(); } },
+    { label: 'Duplicate', icon: 'copy', run: () => { const c = DM.clone(w); c.id = DM.uid('wf'); c.name += ' (copy)'; c.status = 'draft'; c.version = 1; c.runs = 0; c.lastRun = null; c.versions = null; c.hasDraft = false; delete c._g; wfs().push(c); DM.toast('Duplicated'); DM.go('/workflows/' + c.id); } },
+    { label: 'Delete', icon: 'trash', run: () => DM.confirm('Delete workflow?', `<b>${esc(w.name)}</b> will be removed.`, () => { DM.S.workflows = wfs().filter((x) => x.id !== w.id); DM.toast('Workflow deleted'); DM.go('/workflows'); }, 'Delete') }]); });
   DM.act('wf-run', (el) => {
     const w = DM.by(wfs(), el.dataset.arg); const u = U(); if (u.run) return; u.run = true;
     const order = []; const seen = new Set(); const q = [(w.nodes.find((n) => n.type === 'trigger') || w.nodes[0]).id];
     while (q.length) { const id = q.shift(); if (seen.has(id)) continue; seen.add(id); order.push(id); w.edges.filter((e) => e.from === id).forEach((e) => q.push(e.to)); }
     document.querySelectorAll('.wf-node').forEach((n) => n.classList.remove('ok', 'run')); DM.toast('Test run started', 'play');
-    order.forEach((id, i) => setTimeout(() => { const prev = document.querySelector(`.wf-node[data-nid="${order[i - 1]}"]`); if (prev) { prev.classList.remove('run'); prev.classList.add('ok'); } const el2 = document.querySelector(`.wf-node[data-nid="${id}"]`); if (el2) el2.classList.add('run'); }, i * 750));
-    setTimeout(() => { const last = document.querySelector(`.wf-node[data-nid="${order[order.length - 1]}"]`); if (last) { last.classList.remove('run'); last.classList.add('ok'); } w.runs = (w.runs || 0) + 1; w.lastRun = new Date().toISOString(); u.run = false; DM.toast(`Test run passed · ${order.length} steps`, 'check'); }, order.length * 750 + 200);
+    order.forEach((id, i) => setTimeout(() => { const prev = document.querySelector(`.wf-node[data-nid="${order[i - 1]}"]`); if (prev) { prev.classList.remove('run'); prev.classList.add('ok'); } const el2 = document.querySelector(`.wf-node[data-nid="${id}"]`); if (el2) el2.classList.add('run'); }, i * 650));
+    setTimeout(() => { const last = document.querySelector(`.wf-node[data-nid="${order[order.length - 1]}"]`); if (last) { last.classList.remove('run'); last.classList.add('ok'); } w.runs = (w.runs || 0) + 1; w.lastRun = new Date().toISOString(); u.run = false; DM.toast(`Test run passed · ${order.length} steps`, 'check'); }, order.length * 650 + 200);
   });
 
   /* ── governance ── */

@@ -13,15 +13,26 @@
   `;
   document.head.appendChild(st);
 
-  const U = (DM.ui.fulfilment = DM.ui.fulfilment || { view: 'board', q: '', carrier: 'all' });
-  const COLS = [['pending', 'Ready to ship', ''], ['pickup', 'Awaiting pickup', 'amber'], ['in_transit', 'In transit', 'blue'], ['delivered', 'Delivered', 'green']];
+  const U = (DM.ui.fulfilment = DM.ui.fulfilment || { view: 'board', q: '', carrier: 'all', hid: [], tab: 'overview', open: null });
+  const COLS_B = [['pending', 'Ready to ship', ''], ['pickup', 'Awaiting pickup', 'amber'], ['in_transit', 'In transit', 'blue'], ['delivered', 'Delivered', 'green']];
   const SB = { pending: ['Ready to ship', ''], pickup: ['Awaiting pickup', 'amber'], in_transit: ['In transit', 'blue'], delivered: ['Delivered', 'green'], rto: ['Returned (RTO)', 'red'] };
   const order = (id) => DM.by(DM.S.orders || [], id);
   const pn = (s) => { const o = order(s.orderId); return o ? (DM.by(DM.S.parties || [], o.partyId) || {}).name || '—' : '—'; };
-  const sb = (s) => { const [l, t] = SB[s] || [s, '']; return DM.badge(l, t, true); };
+  const sb = (s) => { const [l, t] = SB[s] || [s, 'grey']; return DM.status(l, t || 'grey'); };
+  const caseOf = (s) => { const o = order(s.orderId); const t = o && o.threadId && DM.by(DM.S.threads || [], o.threadId); return t || null; };
   const get = (id) => DM.by(DM.S.shipments || [], id);
   const late = (s) => !['delivered', 'rto'].includes(s.status) && s.eta && new Date(s.eta) < new Date('2026-10-27');
 
+  const COLS = () => [
+    { id: 'id', label: 'Shipment', w: '130px', render: (s) => DM.mono(s.id) },
+    { id: 'order', label: 'Order', w: '130px', render: (s) => DM.mono((order(s.orderId) || {}).no || s.orderId) },
+    { id: 'party', label: 'Party', flex: 2, render: (s) => `<span class="b">${esc(pn(s))}</span>` },
+    { id: 'carrier', label: 'Carrier', w: '120px', render: (s) => esc(s.carrier) },
+    { id: 'awb', label: 'AWB', w: '150px', render: (s) => `<span class="mono xs">${esc(s.awb)}</span>` },
+    { id: 'route', label: 'Route', flex: 2, render: (s) => `${esc(s.from)} → ${esc(s.to)}` },
+    { id: 'eta', label: 'ETA', w: '110px', render: (s) => `<span class="${late(s) ? 'down' : ''}">${fmt.date(s.eta)}</span>` },
+    { id: 'status', label: 'Status', w: '150px', render: (s) => sb(s.status) },
+  ];
   function page() {
     const all = DM.S.shipments || []; const q = U.q.toLowerCase();
     const carriers = [...new Set(all.map((s) => s.carrier))];
@@ -33,47 +44,48 @@
       ...rto.map((s) => `<div class="ff-alert red" data-act="ff-open" data-arg="${s.id}">${I('alert')}<span><b>${esc(s.awb)}</b> is returning to origin — ${esc(pn(s))}</span></div>`),
       ...(unshipped.length ? [`<div class="ff-alert" data-act="ff-new">${I('package')}<span><b>${unshipped.length} order${unshipped.length > 1 ? 's' : ''}</b> without a shipment</span></div>`] : []),
     ];
-    const card = (s) => { const o = order(s.orderId) || {}; return `<div class="kcard" data-act="ff-open" data-arg="${s.id}"><div class="row"><span class="b sm">${esc(o.no || s.orderId)}</span>${late(s) ? '<span class="badge red right">Delayed</span>' : ''}</div><div class="sm trunc" style="margin:2px 0">${esc(pn(s))}</div><div class="xs muted">${esc(s.carrier)} · <span class="mono">${esc(s.awb)}</span></div><div class="row xs muted" style="margin-top:6px">${I('map')}<span class="trunc">${esc(s.from)} → ${esc(s.to)}</span></div><div class="xs muted" style="margin-top:4px">ETA ${fmt.date(s.eta)}</div></div>`; };
-    const cols = [
-      { label: 'Shipment', render: (s) => `<span class="b">${esc(s.id)}</span>` },
-      { label: 'Order', render: (s) => esc((order(s.orderId) || {}).no || s.orderId) },
-      { label: 'Customer', render: (s) => esc(pn(s)) },
-      { label: 'Carrier', render: (s) => esc(s.carrier) },
-      { label: 'AWB', render: (s) => `<span class="mono xs">${esc(s.awb)}</span>` },
-      { label: 'Route', render: (s) => `${esc(s.from)} → ${esc(s.to)}` },
-      { label: 'ETA', render: (s) => `<span class="${late(s) ? 'down' : ''}">${fmt.date(s.eta)}</span>` },
-      { label: 'Status', render: (s) => sb(s.status) },
-    ];
-    return `<div class="page">
-      ${DM.header('Fulfilment', 'Track every shipment from warehouse to customer.', `${DM.btn('Create shipment', 'ff-new', { icon: 'plus' })}`)}
-      ${alerts.length ? `<div class="ff-alerts">${alerts.join('')}</div>` : ''}
-      <div class="grid g4" style="margin-bottom:16px">
-        ${DM.stat('Ready to ship', all.filter((s) => s.status === 'pending').length + unshipped.length, 'orders waiting', { icon: 'package' })}
-        ${DM.stat('In transit', all.filter((s) => ['pickup', 'in_transit'].includes(s.status)).length, 'with carriers', { icon: 'truck' })}
-        ${DM.stat('Delivered', all.filter((s) => s.status === 'delivered').length, 'this month', { icon: 'check', tone: 'up' })}
-        ${DM.stat('Exceptions', delayed.length + rto.length, 'delayed or RTO', { icon: 'alert', tone: delayed.length + rto.length ? 'down' : 'up' })}
+    const card = (s) => { const o = order(s.orderId) || {}; return `<div class="kcard" data-act="ff-open" data-arg="${s.id}"><div class="row">${DM.mono(o.no || s.orderId)}${late(s) ? '<span class="badge red right">Delayed</span>' : ''}</div><div class="sm b trunc" style="margin:6px 0 2px">${esc(pn(s))}</div><div class="xs muted">${esc(s.carrier)} · <span class="mono">${esc(s.awb)}</span></div><div class="row xs muted" style="margin-top:6px">${I('map')}<span class="trunc">${esc(s.from)} → ${esc(s.to)}</span></div><div class="xs muted" style="margin-top:4px">ETA ${fmt.date(s.eta)}</div></div>`; };
+    const cols = COLS().filter((c) => !U.hid.includes(c.id));
+    const exc = delayed.length + rto.length;
+    const table = U.view === 'table';
+    return `<div class="page wide">
+      ${DM.header('Fulfilment', 'Track every shipment from warehouse to party.', `${DM.btn('Create shipment', 'ff-new', { icon: 'plus' })}`)}
+      <div class="grid g4" style="margin-bottom:14px">
+        ${DM.statCard('Ready to ship', all.filter((s) => s.status === 'pending').length + unshipped.length, 'orders waiting', 'package')}
+        ${DM.statCard('In transit', all.filter((s) => ['pickup', 'in_transit'].includes(s.status)).length, 'with carriers', 'truck')}
+        ${DM.statCard('Delivered', all.filter((s) => s.status === 'delivered').length, 'this month', 'check', { tone: 'up' })}
+        ${DM.statCard('Exceptions', exc, exc ? 'delayed or returned' : 'None right now', 'alert', { tone: exc ? 'down' : 'up' })}
       </div>
-      <div class="row wrap" style="margin-bottom:12px">${DM.pills([{ key: 'board', label: 'Board' }, { key: 'table', label: 'Table' }], U.view, 'ff-view')}${DM.searchBox('ff-q', 'Search AWB, order, customer…', U.q)}
-        <select class="select" style="width:150px" data-change="ff-carrier"><option value="all">All carriers</option>${carriers.map((c) => `<option ${U.carrier === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select><span class="muted sm right">${rows.length} shipments</span></div>
-      ${U.view === 'board'
-        ? `<div class="ff-board">${COLS.map(([k, l, t]) => { const cs = rows.filter((s) => s.status === k); return `<div class="kcol"><div class="row" style="padding:2px 4px"><span class="b sm">${l}</span><span class="badge ${t} right">${cs.length}</span></div>${cs.map(card).join('') || '<div class="empty xs" style="padding:20px 0">Nothing here</div>'}</div>`; }).join('')}</div>`
-        : DM.table(cols, rows, { click: 'ff-open', empty: 'No shipments match.' })}
+      ${alerts.length ? `<div class="ff-alerts">${alerts.join('')}</div>` : ''}
+      ${DM.toolbar(`<button class="btn outline sm" data-act="ff-carriers">${I('truck')} ${U.carrier === 'all' ? 'All carriers' : esc(U.carrier)} ${I('chevD')}</button>${DM.seg([{ key: 'board', label: 'Board' }, { key: 'table', label: 'Table' }], U.view, 'ff-view')}`,
+        `${table ? `<button class="btn outline sm" data-act="ff-cols">${I('columns')} Columns${U.hid.length ? ' · ' + U.hid.length + ' off' : ''}</button>` : ''}${DM.searchBox('ff-q', 'Search AWB, order, party…', U.q)}`)}
+      ${!rows.length ? DM.empty('truck', 'No shipments match', 'Try another carrier or clear the search.')
+        : table ? DM.table(cols, rows, { click: 'ff-open', pageSize: 50, offset: 372 })
+        : `<div class="ff-board">${COLS_B.map(([k, l, t]) => { const cs = rows.filter((s) => s.status === k); return `<div class="kcol"><div class="row" style="padding:2px 4px"><span class="b sm">${l}</span><span class="cnt-chip right">${cs.length}</span></div>${cs.map(card).join('') || '<div class="empty xs" style="padding:20px 0">Nothing here</div>'}</div>`; }).join('')}</div>`}
+      <div class="xs muted" style="margin-top:8px">${rows.length} shipments in view</div>
     </div>`;
   }
+  DM.act('ff-carriers', (el) => { const cs = [...new Set((DM.S.shipments || []).map((s) => s.carrier))]; DM.menu(el, [{ label: 'All carriers', icon: U.carrier === 'all' ? 'check' : null, run: () => { U.carrier = 'all'; DM.render(); } }, ...cs.map((c) => ({ label: c, icon: U.carrier === c ? 'check' : null, run: () => { U.carrier = c; DM.render(); } }))]); });
+  DM.act('ff-cols', (el) => DM.colsMenu(el, COLS(), U.hid, () => DM.render()));
   DM.act('ff-view', (el) => { U.view = el.dataset.arg; DM.render(); });
   DM.input('ff-q', (v) => { U.q = v; DM.render(); });
-  DM.input('ff-carrier', (v) => { U.carrier = v; DM.render(); });
 
-  DM.act('ff-open', (el) => openDrawer(el.dataset.arg));
+  DM.act('ff-open', (el) => { U.tab = 'overview'; openDrawer(el.dataset.arg); });
   function openDrawer(id) {
-    const s = get(id); if (!s) return; const o = order(s.orderId) || {};
+    const s = get(id); if (!s) return; U.open = id; const o = order(s.orderId) || {}; const th = caseOf(s);
     const next = { pending: 'pickup', pickup: 'in_transit', in_transit: 'delivered' }[s.status];
     const events = (s.events || []).slice().sort((a, b) => new Date(b.at) - new Date(a.at));
-    DM.drawer({ title: `${esc(s.id)} ${sb(s.status)}`, body: `
-      <dl class="kv" style="margin-bottom:16px"><dt>Order</dt><dd><a class="b" href="#/orders/${esc(s.orderId)}">${esc(o.no || s.orderId)}</a></dd><dt>Customer</dt><dd>${esc(pn(s))}</dd><dt>Carrier</dt><dd>${esc(s.carrier)}</dd><dt>AWB</dt><dd class="mono">${esc(s.awb)}</dd><dt>Route</dt><dd>${esc(s.from)} → ${esc(s.to)}</dd><dt>ETA</dt><dd class="${late(s) ? 'down' : ''}">${fmt.date(s.eta)}</dd></dl>
-      <div class="row" style="margin-bottom:16px;flex-wrap:wrap">${next ? DM.btn('Mark ' + SB[next][0].toLowerCase(), 'ff-advance', { arg: s.id, icon: 'arrowR' }) : ''}${s.status !== 'delivered' && s.status !== 'rto' ? DM.btn('Mark RTO', 'ff-rto', { arg: s.id, cls: 'outline' }) : ''}${DM.btn('Copy AWB', 'toast', { arg: 'AWB copied', cls: 'outline', icon: 'copy' })}</div>
-      <h3 style="margin-bottom:10px">Tracking</h3><div class="ff-tl">${events.map((e) => `<div class="ev"><div class="sm b">${esc(e.text)}</div><div class="xs muted">${fmt.dt(e.at)}</div></div>`).join('') || '<div class="muted sm">No events yet.</div>'}</div>` });
+    const body = U.tab === 'overview'
+      ? `<div class="grid g3">${DM.statCard('Status', SB[s.status] ? SB[s.status][0] : s.status, s.carrier, 'truck')}${DM.statCard('ETA', fmt.date(s.eta), late(s) ? 'Past due' : 'On schedule', 'calendar', { tone: late(s) ? 'down' : '' })}${DM.statCard('Order value', fmt.inr(o.total), (o.lines || []).length + ' lines', 'rupee')}</div>
+        <div class="sect">Shipment</div><div class="card pad"><dl class="kv"><dt>Order</dt><dd><a class="b" href="#/orders/${esc(s.orderId)}">${esc(o.no || s.orderId)}</a></dd><dt>Party</dt><dd>${esc(pn(s))}</dd><dt>Carrier</dt><dd>${esc(s.carrier)}</dd><dt>AWB</dt><dd class="mono">${esc(s.awb)}</dd><dt>Route</dt><dd>${esc(s.from)} → ${esc(s.to)}</dd>${th ? `<dt>Case</dt><dd><a class="monotag" href="#/inbox/threads?case=${esc(th.id)}">${esc(th.caseNo || th.id)}</a></dd>` : ''}</dl></div>`
+      : `<div class="ff-tl">${events.map((e) => `<div class="ev"><div class="sm b">${esc(e.text)}</div><div class="xs muted">${fmt.dt(e.at)}</div></div>`).join('') || '<div class="muted sm">No events yet.</div>'}</div>`;
+    DM.sheet('ship:' + id, {
+      title: `<div class="row">${DM.mono(s.id)}${sb(s.status)}</div><div class="sm muted" style="margin-top:4px">${esc(pn(s))}</div>`,
+      tabs: [{ key: 'overview', label: 'Overview' }, { key: 'tracking', label: 'Tracking', count: events.length }], tab: U.tab, body,
+      footer: `${next ? DM.btn('Mark ' + SB[next][0].toLowerCase(), 'ff-advance', { arg: s.id, icon: 'arrowR', cls: 'sm' }) : ''}${s.status !== 'delivered' && s.status !== 'rto' ? DM.btn('Mark RTO', 'ff-rto', { arg: s.id, cls: 'outline sm' }) : ''}${DM.btn('Copy AWB', 'toast', { arg: 'AWB copied', cls: 'ghost sm', icon: 'copy' })}`,
+    });
   }
+  DM.sheetTab = ((prev) => (kind, t) => { if (kind === 'ship') { U.tab = t; openDrawer(U.open); } else if (prev) prev(kind, t); })(DM.sheetTab);
   const advance = (id, to, text) => { const s = get(id); s.status = to; s.events = s.events || []; s.events.push({ at: new Date().toISOString(), text }); const o = order(s.orderId); if (o && to === 'in_transit' && o.status !== 'delivered') o.status = 'shipped'; if (o && to === 'delivered') o.status = 'delivered'; DM.render(); openDrawer(id); };
   DM.act('ff-advance', (el) => { const s = get(el.dataset.arg); const next = { pending: 'pickup', pickup: 'in_transit', in_transit: 'delivered' }[s.status]; advance(s.id, next, { pickup: 'Pickup scheduled', in_transit: 'Picked up — in transit', delivered: 'Delivered to customer' }[next]); DM.toast('Shipment ' + SB[next][0].toLowerCase()); });
   DM.act('ff-rto', (el) => { advance(el.dataset.arg, 'rto', 'Marked return to origin'); DM.toast('Marked RTO', 'alert'); });
@@ -89,8 +101,7 @@
       } }] });
   });
 
-  window.addEventListener('hashchange', () => DM.closeDrawer());
-  const render = () => page();
-  DM.page('/fulfilment', { title: 'Fulfilment', render, after: (v, { q }) => { const s = q.get('s'); if (s && get(s) && !document.getElementById('drawer-wrap')) openDrawer(s); } });
-  DM.page('/shipping', { title: 'Shipping', render });
+    const render = () => page();
+  DM.page('/fulfilment', { title: 'Fulfilment', crumb: 'Fulfilment', render, after: (v, { q }) => { const s = q.get('s'); if (s && get(s) && !document.getElementById('drawer-wrap')) openDrawer(s); } });
+  DM.page('/shipping', { title: 'Shipping', crumb: 'Shipping', render });
 })();

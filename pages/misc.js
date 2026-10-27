@@ -15,16 +15,16 @@
 
   // Registered last: anything no page claimed lands here.
   DM.page('*', {
-    title: 'Not found',
+    title: 'Not found', crumb: 'Not found',
     render({ path }) {
       const q = path.split('/').filter(Boolean).pop() || '';
       const near = DM.allDestinations().filter((d) => q && d.url.toLowerCase().includes(q.toLowerCase().slice(0, 4))).slice(0, 5);
-      return `<div class="page fadein" style="max-width:560px"><div class="empty">
-        <div class="ico" style="margin:0 auto 12px;width:44px;height:44px;border-radius:12px">${I('search')}</div>
+      return `<div class="page fadein" style="max-width:560px"><div class="empty" style="display:flex;flex-direction:column;align-items:center">
+        ${DM.icoTile('search', 'lg')}
         <h2 style="font-size:18px;color:var(--foreground)">We couldn't find that page</h2>
         <p class="sm" style="margin-top:4px"><code>${esc(path)}</code> doesn't exist in this demo workspace.</p>
         ${near.length ? `<div class="col" style="margin:16px 0;text-align:left">${near.map((d) => `<a class="alert blue" href="#${d.url}">${I(d.icon)}<span class="grow">${esc(d.label)}</span>${I('chevR')}</a>`).join('')}</div>` : ''}
-        <div class="row" style="justify-content:center;margin-top:16px">${DM.btn('Go to dashboard', null, { go: '/dashboard', icon: 'dashboard' })}${DM.btn('Search everything', 'misc-search', { cls: 'outline', icon: 'search' })}</div>
+        <div class="row" style="justify-content:center;margin-top:16px">${DM.btn('Go to Home', null, { go: '/dashboard', icon: 'dashboard' })}${DM.btn('Search everything', 'misc-search', { cls: 'outline', icon: 'search' })}</div>
       </div></div>`;
     },
   });

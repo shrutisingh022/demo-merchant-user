@@ -21,7 +21,8 @@
   const me = () => (S().users || [])[0] || { id: 'me', name: 'You' };
   const TONE = { draft: '', pending_approval: 'amber', sent: 'blue', accepted: 'green', rejected: 'red' };
   const LBL = { draft: 'Draft', pending_approval: 'Needs approval', sent: 'Sent', accepted: 'Accepted', rejected: 'Rejected' };
-  const bd = (s) => D.badge(LBL[s] || s, TONE[s], 1);
+  const STONE = { draft: 'grey', pending_approval: 'amber', sent: 'blue', accepted: 'green', rejected: 'red' };
+  const bd = (s) => D.status(LBL[s] || s, STONE[s] || 'grey');
   const rate = () => S().rateCard || [];
   const prodOf = (l) => D.by(S().products, l.productId) || {};
   const rule = (l) => { const c = prodOf(l).category; return rate().find((r) => r.category === c) || rate().find((r) => /default|all/i.test(r.category)) || { minMarginPct: 10, maxDiscPct: 10, approvalAbove: 500000 }; };
@@ -43,7 +44,7 @@
   /* ── list pages ── */
   function stats() {
     const Q = quotes(); const sum = (f) => Q.filter(f).reduce((a, q) => a + q.total, 0);
-    return `<div class="grid g4" style="margin-bottom:16px">${D.stat('Open quotes', Q.filter((q) => ['draft', 'sent', 'pending_approval'].includes(q.status)).length, D.fmt.inrc(sum((q) => ['draft', 'sent', 'pending_approval'].includes(q.status))) + ' in play', { icon: 'receipt' })}${D.stat('Awaiting approval', Q.filter((q) => q.status === 'pending_approval').length, 'Needs a manager', { icon: 'shield', tone: Q.some((q) => q.status === 'pending_approval') ? 'down' : 'muted' })}${D.stat('Accepted', D.fmt.inrc(sum((q) => q.status === 'accepted')), Q.filter((q) => q.status === 'accepted').length + ' quotes', { icon: 'check', tone: 'up' })}${D.stat('Win rate', Math.round((Q.filter((q) => q.status === 'accepted').length / Math.max(1, Q.filter((q) => ['accepted', 'rejected'].includes(q.status)).length)) * 100) + '%', 'accepted ÷ decided', { icon: 'chart' })}</div>`;
+    return `<div class="grid g4" style="margin-bottom:16px">${D.statCard('Open quotes', Q.filter((q) => ['draft', 'sent', 'pending_approval'].includes(q.status)).length, D.fmt.inrc(sum((q) => ['draft', 'sent', 'pending_approval'].includes(q.status))) + ' in play', 'receipt')}${D.statCard('Awaiting approval', Q.filter((q) => q.status === 'pending_approval').length, 'Needs a manager', 'shield')}${D.statCard('Accepted', D.fmt.inrc(sum((q) => q.status === 'accepted')), Q.filter((q) => q.status === 'accepted').length + ' quotes', 'check')}${D.statCard('Win rate', Math.round((Q.filter((q) => q.status === 'accepted').length / Math.max(1, Q.filter((q) => ['accepted', 'rejected'].includes(q.status)).length)) * 100) + '%', 'accepted ÷ decided', 'chart')}</div>`;
   }
   D.page('/quotes/all', {
     title: 'Quotes', crumb: 'All quotes',
@@ -51,9 +52,9 @@
       const u = ui(); let L = quotes().slice(); const cnt = (s) => quotes().filter((q) => q.status === s).length;
       if (u.f !== 'all') L = L.filter((q) => q.status === u.f);
       if (u.q) L = L.filter((q) => (q.no + party(q.partyId).name).toLowerCase().includes(u.q.toLowerCase()));
-      return `<div class="page">${D.header('Quotes', 'Everything you have quoted, from draft to accepted.', `<a class="btn outline" href="#/quotes/approvals">${I('shield')} Approvals${cnt('pending_approval') ? ` <span class="badge amber">${cnt('pending_approval')}</span>` : ''}</a><button class="btn" data-act="qt-new">${I('plus')} New quote</button>`)}${stats()}
-      <div class="row wrap" style="margin-bottom:12px">${D.pills([{ key: 'all', label: 'All ' + quotes().length }, ...Object.keys(LBL).map((k) => ({ key: k, label: `${LBL[k]} ${cnt(k)}` }))], u.f, 'qt-f')}<span class="right">${D.searchBox('qt-q', 'Search quote or party', u.q)}</span></div>
-      ${D.table([{ label: 'Quote', render: (q) => `<span class="b">${esc(q.no)}</span>` }, { label: 'Party', render: (q) => esc(party(q.partyId).name) }, { label: 'Status', render: (q) => bd(q.status) }, { label: 'Total', num: 1, render: (q) => D.fmt.inr(q.total) }, { label: 'Margin', num: 1, render: (q) => `${mdot(q.marginPct)} ${q.marginPct ?? '—'}%` }, { label: 'Valid till', render: (q) => D.fmt.date(q.validTill) }, { label: 'Created', render: (q) => `<span class="muted">${D.fmt.date(q.createdAt)}</span>` }], L, { go: (q) => '/quotes/' + q.id, empty: 'No quotes in this view.' })}</div>`;
+      return `<div class="page wide">${D.header('Quotes', 'Everything you have quoted, from draft to accepted.', `<a class="btn outline" href="#/quotes/approvals">${I('shield')} Approvals${cnt('pending_approval') ? ` <span class="badge amber">${cnt('pending_approval')}</span>` : ''}</a><button class="btn" data-act="qt-new">${I('plus')} New quote</button>`)}${stats()}
+      <div class="toolbar">${D.seg([{ key: 'all', label: 'All', count: quotes().length }, ...Object.keys(LBL).map((k) => ({ key: k, label: LBL[k], count: cnt(k) }))], u.f, 'qt-f')}<div class="row gap12 right">${D.searchBox('qt-q', 'Search quote or party…', u.q)}</div></div>
+      ${D.table([{ label: 'Quote', render: (q) => `<span class="b">${esc(q.no)}</span>` }, { label: 'Party', render: (q) => esc(party(q.partyId).name) }, { label: 'Status', render: (q) => bd(q.status) }, { label: 'Total', num: 1, render: (q) => D.fmt.inr(q.total) }, { label: 'Margin', num: 1, render: (q) => `${mdot(q.marginPct)} ${q.marginPct ?? '—'}%` }, { label: 'Valid till', render: (q) => D.fmt.date(q.validTill) }, { label: 'Created', render: (q) => `<span class="muted">${D.fmt.date(q.createdAt)}</span>` }], L, { go: (q) => '/quotes/' + q.id, pageSize: 50, empty: 'No quotes in this view.' })}</div>`;
     },
   });
   D.page('/quotes/approvals', {
@@ -64,7 +65,7 @@
       ${P.length ? `<div class="col" style="gap:12px">${P.map((q) => { const f = flags(q); return `<div class="card pad"><div class="row"><div class="grow"><a class="b" style="font-size:15px" href="#/quotes/${q.id}">${esc(q.no)}</a> <span class="muted">· ${esc(party(q.partyId).name)}</span><div class="xs muted">Requested ${D.fmt.dt(q.createdAt)} · ${q.lines.length} lines</div></div><div style="text-align:right"><div class="b mono" style="font-size:16px">${D.fmt.inr(q.total)}</div><div class="xs">${mdot(q.marginPct)} margin ${q.marginPct}%</div></div></div>
         ${f.length ? `<div class="col" style="gap:4px;margin:10px 0">${f.map((x) => `<div class="sm row" style="color:var(--warning-ink)">${I('alert')}${esc(x)}</div>`).join('')}</div>` : '<div class="xs muted" style="margin:8px 0">Manually sent for approval.</div>'}
         <div class="row"><button class="btn" data-act="qt-approve" data-arg="${q.id}">${I('check')} Approve & send</button><button class="btn outline" data-act="qt-reject" data-arg="${q.id}">${I('x')} Reject</button><a class="btn ghost" href="#/quotes/${q.id}">Review lines</a></div></div>`; }).join('')}</div>` : `<div class="card"><div class="empty">${I('check')}<h3 style="margin-top:8px">All clear</h3><p>No quotes are waiting for approval.</p></div></div>`}
-      ${done.length ? `<h3 style="margin:22px 0 8px">Recently decided</h3>${D.table([{ label: 'Quote', render: (q) => `<b>${esc(q.no)}</b>` }, { label: 'Party', render: (q) => esc(party(q.partyId).name) }, { label: 'Decision', render: (q) => D.badge(q.decision.verdict, q.decision.verdict === 'Approved' ? 'green' : 'red') }, { label: 'By', render: (q) => esc(uname(q.decision.by)) }, { label: 'Note', render: (q) => `<span class="muted">${esc(q.decision.note || '')}</span>` }], done, { go: (q) => '/quotes/' + q.id })}` : ''}</div>`;
+      ${done.length ? `<h3 style="margin:22px 0 8px">Recently decided</h3>${D.table([{ label: 'Quote', render: (q) => `<b>${esc(q.no)}</b>` }, { label: 'Party', render: (q) => esc(party(q.partyId).name) }, { label: 'Decision', render: (q) => D.status(q.decision.verdict, q.decision.verdict === 'Approved' ? 'green' : 'red') }, { label: 'By', render: (q) => esc(uname(q.decision.by)) }, { label: 'Note', render: (q) => `<span class="muted">${esc(q.decision.note || '')}</span>` }], done, { go: (q) => '/quotes/' + q.id })}` : ''}</div>`;
     },
   });
 

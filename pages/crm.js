@@ -7,6 +7,7 @@
   .bulkbar .btn{background:#fff;color:#171717;border-color:#fff}.bulkbar .btn.ghost{background:transparent;color:#fff;border-color:transparent}
   .rec-head{display:flex;gap:14px;align-items:center;margin-bottom:14px}.th{cursor:pointer;user-select:none}.th:hover{color:var(--foreground)}
   .tl{position:relative;padding-left:18px}.tl::before{content:"";position:absolute;left:5px;top:4px;bottom:4px;width:1px;background:var(--border)}.tl .ev{position:relative;padding:0 0 14px}.tl .ev::before{content:"";position:absolute;left:-17px;top:5px;width:9px;height:9px;border-radius:50%;background:#fff;border:2px solid var(--chart-2)}`;
+  st.textContent += `.gridbox{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#fff}.gridbox .dmgrid{border-radius:0}.gridbox .dmgrid .ag-root-wrapper{border:0;border-radius:0}.gridfoot{display:flex;align-items:center;gap:12px;padding:0 14px;height:46px;border-top:1px solid var(--border);font-size:12px;color:var(--muted-foreground)}.gridfoot .pg{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:8px;height:28px;padding:0 10px;color:var(--foreground);font-weight:500;background:#fff}.gridfoot .pn{width:28px;height:28px;border:1px solid var(--border);border-radius:8px;display:grid;place-items:center;opacity:.5}.dsec{margin:18px 0 8px;font-size:12.5px;font-weight:500}.drow{display:flex;gap:10px;align-items:center;padding:10px 12px;border-top:1px solid var(--border)}.drow:first-child{border-top:0}.dh{padding:10px 14px;font-weight:600;font-size:13px;border-bottom:1px solid var(--border);display:flex;align-items:center}.dtbl{width:100%;border-collapse:collapse;font-size:12px}.dtbl th{text-align:left;font-weight:500;color:var(--muted-foreground);padding:8px 12px;border-bottom:1px solid var(--border)}.dtbl td{padding:9px 12px;border-bottom:1px solid var(--border)}.dtbl tr:last-child td{border-bottom:0}.dtbl tr.click{cursor:pointer}.dtbl tr.click:hover td{background:var(--hover-cream)}`;
   document.head.appendChild(st);
 
   const S = () => DM.S;
@@ -29,40 +30,94 @@
   const statusBadge = (p) => (p.status === 'blocked' ? DM.badge('Blocked', 'red', 1) : quiet(p) ? DM.badge('Quiet', 'amber', 1) : DM.badge('Active', 'green', 1));
   const sortVal = { name: (p) => (p.name || '').toLowerCase(), outstanding: (p) => p.outstanding || 0, lifetime: (p) => p.lifetime || 0, last: (p) => p.lastOrderAt || '', orders: (p) => p.orders30d || 0 };
 
-  function filtered() {
-    const seg = SEGS.find((s) => s.key === ui.seg) || SEGS[0]; const q = ui.q.toLowerCase().trim();
-    let rows = parties().filter((p) => seg.test(p) && (ui.owner === 'all' || p.owner === ui.owner) && (!q || [p.name, p.city, p.region, p.gstin, p.phone, p.type].join(' ').toLowerCase().includes(q)));
-    const f = sortVal[ui.sort] || sortVal.name; rows.sort((a, b) => (f(a) > f(b) ? 1 : f(a) < f(b) ? -1 : 0) * ui.dir); return rows;
-  }
   const crmTabs = (cur) => `<div class="tabs"><a class="tab ${cur === 'parties' ? 'on' : ''}" href="#/crm/accounts">${I('building')} Parties <span class="badge">${parties().length}</span></a><a class="tab ${cur === 'contacts' ? 'on' : ''}" href="#/crm/contacts">${I('user')} Contacts <span class="badge">${contacts().length}</span></a></div>`;
   const th = (k, l, num) => `<th class="th ${num ? 'num' : ''}" data-act="crm-sort" data-arg="${k}">${l}${ui.sort === k ? (ui.dir > 0 ? ' ↑' : ' ↓') : ''}</th>`;
   const chk = (on) => `<span class="chk ${on ? 'on' : ''}">${on ? I('check').replace('class="i "', 'class="i" style="width:10px;height:10px;stroke-width:3"') : ''}</span>`;
 
-  /* ───── parties list ───── */
-  DM.page('/crm/accounts', { title: 'CRM · Parties', crumb: 'Parties', render() {
-    const all = parties(), rows = filtered();
-    const tot = all.reduce((a, p) => a + (p.outstanding || 0), 0);
-    const sel = ui.sel.filter((id) => party(id));
-    return `<div class="page">${DM.header('CRM', 'Every party you trade with — dealers, contractors, distributors.', `<button class="btn outline" data-act="crm-export">${I('download')} Export</button><a class="btn" href="#/crm/accounts/create">${I('plus')} New party</a>`)}
-      ${crmTabs('parties')}
-      <div class="grid g4" style="margin-bottom:14px">${DM.stat('Parties', all.length, `${all.filter((p) => p.status === 'active' && !quiet(p)).length} active`, { icon: 'building' })}${DM.stat('Outstanding', F.inrc(tot), `${all.filter(over).length} over credit limit`, { icon: 'rupee', tone: all.some(over) ? 'down' : 'muted' })}${DM.stat('Lifetime value', F.inrc(all.reduce((a, p) => a + (p.lifetime || 0), 0)), 'across all parties', { icon: 'chart' })}${DM.stat('Quiet 30d+', all.filter(quiet).length, 'worth a nudge', { icon: 'clock', tone: 'muted' })}</div>
-      <div class="row wrap" style="margin-bottom:12px;gap:6px">${SEGS.map((s) => `<button class="btn sm ${ui.seg === s.key ? '' : 'outline'}" data-act="crm-seg" data-arg="${s.key}">${s.label} <span style="opacity:.6">${all.filter(s.test).length}</span></button>`).join('')}</div>
-      <div class="row" style="margin-bottom:12px">${DM.searchBox('crm-q', 'Search name, city, GSTIN…', ui.q)}<select class="select" style="width:170px" data-change="crm-owner"><option value="all">All owners</option>${users().map((u) => `<option value="${u.id}" ${ui.owner === u.id ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select><span class="muted sm right">${rows.length} of ${all.length}</span></div>
-      ${sel.length ? `<div class="bulkbar"><b>${sel.length} selected</b><button class="btn sm" data-act="crm-bulk-owner">Assign owner</button><button class="btn sm" data-act="crm-bulk-tag">Add tag</button><button class="btn sm" data-act="crm-bulk-block">Block</button><button class="btn sm ghost right" data-act="crm-sel-clear">Clear</button></div>` : ''}
-      ${rows.length ? `<div class="tblwrap"><table class="tbl"><thead><tr><th style="width:34px" data-act="crm-sel-all" class="th">${chk(rows.length && rows.every((r) => sel.includes(r.id)))}</th>${th('name', 'Party')}<th>Type</th><th>Owner</th>${th('orders', 'Orders 30d', 1)}${th('outstanding', 'Outstanding', 1)}${th('lifetime', 'Lifetime', 1)}${th('last', 'Last order')}<th>Status</th></tr></thead><tbody>${rows.map((p) => `<tr class="click" data-go="/crm/accounts/${p.id}"><td data-act="crm-sel" data-arg="${p.id}">${chk(sel.includes(p.id))}</td><td><div class="row">${DM.avatar(p.name, 'sm')}<div><div class="b">${esc(p.name)}</div><div class="xs muted">${esc(p.city || '')}${p.region ? ' · ' + esc(p.region) : ''}</div></div></div></td><td>${esc(p.type || '—')}</td><td>${esc(uname(p.owner))}</td><td class="num">${p.orders30d ?? 0}</td><td class="num ${over(p) ? 'down' : ''}">${F.inr(p.outstanding || 0)}</td><td class="num">${F.inrc(p.lifetime || 0)}</td><td>${p.lastOrderAt ? F.date(p.lastOrderAt) : '—'}</td><td>${statusBadge(p)}</td></tr>`).join('')}</tbody></table></div>` : `<div class="tblwrap"><div class="empty"><h3>No parties match</h3><p class="sm">Try clearing the segment or search.</p><p style="margin-top:10px"><button class="btn outline" data-act="crm-clear">Clear filters</button></p></div></div>`}</div>`;
-  } });
-  DM.act('crm-seg', (el) => { ui.seg = el.dataset.arg; DM.render(); });
-  DM.act('crm-clear', () => { ui.seg = 'all'; ui.q = ''; ui.owner = 'all'; DM.render(); });
-  DM.act('crm-sort', (el) => { const k = el.dataset.arg; if (ui.sort === k) ui.dir *= -1; else { ui.sort = k; ui.dir = k === 'name' ? 1 : -1; } DM.render(); });
+  /* ───── parties list (live NuHome design: stat cards, segmented tabs, AG Grid, right drawer) ───── */
+  const stateOf = (p) => (DM.stateOf ? DM.stateOf(p) : p.region || '—');
+  const ensureNos = () => { let n = 1002; const ps = parties(); const used = ps.map((p) => parseInt(String(p.no || '').replace(/\D/g, '')) || 0); n = Math.max(1002, ...used); ps.forEach((p) => { if (!p.no) p.no = 'AC-' + ++n; }); };
+  ui.hide = ui.hide || { owner: true, outstanding: true }; ui.chide = ui.chide || {};
+  const ctsOf = (p) => contacts().filter((c) => c.partyId === p.id);
+  const cstatus = (p) => (p.status === 'blocked' ? DM.status('Blocked', 'red') : quiet(p) ? DM.status('Quiet', 'amber') : DM.status('Active', 'green'));
+  const crmHead = (cur) => `${DM.header('CRM', '', cur === 'parties' ? `<a class="btn" href="#/crm/accounts/create">${I('plus')} New party</a>` : `<a class="btn" href="#/crm/contacts/new">${I('plus')} New contact</a>`)}`;
+  const cards = () => { const o = (S().orders || []).filter((x) => x.status !== 'cancelled').length; const ch = (S().threads || []).filter((t) => t.status === 'open').length; return `<div class="grid g4" style="margin-bottom:16px">${DM.statCard('Parties', F.num(parties().length), null, 'building')}${DM.statCard('Contacts', F.num(contacts().length), null, 'users')}${DM.statCard('Confirmed orders', F.num(o), null, 'package')}${DM.statCard('Open chats', F.num(ch), null, 'chat')}</div>`; };
+  const gridFoot = (n, noun) => (n > 50 ? '' : `<div class="gridfoot"><span>${F.num(n)} ${noun} in view</span><span class="grow"></span><span class="pg">50 / page ${I('chevD')}</span><span>1–${n} of ${F.num(n)}</span><span class="pn">${I('chevL')}</span><span class="pn">${I('chevR')}</span></div>`);
+  const PCOLS = [
+    { id: 'no', label: 'Number', w: '120px', render: (p) => `<span class="mono b" style="font-size:11.5px">${esc(p.no)}</span>` },
+    { id: 'name', label: 'Party', flex: 2, render: (p) => `<b>${esc(p.name)}</b>` },
+    { id: 'contacts', label: 'Contacts', render: (p) => { const c = ctsOf(p); return c.length ? esc(c.find((x) => x.primary)?.name || c[0].name) + (c.length > 1 ? ` <span class="muted">+${c.length - 1}</span>` : '') : '<span class="muted">—</span>'; } },
+    { id: 'phone', label: 'WhatsApp', render: (p) => esc(p.phone || '—') },
+    { id: 'city', label: 'City', render: (p) => esc(p.city || '—') },
+    { id: 'state', label: 'State', render: (p) => esc(stateOf(p)) },
+    { id: 'owner', label: 'Owner', render: (p) => esc(uname(p.owner)) },
+    { id: 'outstanding', label: 'Outstanding', num: 1, render: (p) => `<span class="${over(p) ? 'down' : ''}">${F.inr(p.outstanding || 0)}</span>` },
+    { id: 'status', label: 'Status', w: '120px', render: cstatus },
+  ];
+  const sortRows = (rows) => rows.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  function filtered() {
+    const seg = SEGS.find((s) => s.key === ui.seg) || SEGS[0]; const q = ui.q.toLowerCase().trim();
+    return sortRows(parties().filter((p) => seg.test(p) && (ui.owner === 'all' || p.owner === ui.owner) && (!q || [p.name, p.no, p.city, stateOf(p), p.gstin, p.phone, p.type].join(' ').toLowerCase().includes(q))));
+  }
+  const tabsSeg = (cur) => DM.seg([{ key: 'parties', label: 'Parties' }, { key: 'contacts', label: 'Contacts' }], cur, 'crm-tab');
+  DM.act('crm-tab', (el) => DM.go(el.dataset.arg === 'contacts' ? '/crm/contacts' : '/crm/accounts'));
+  const colsBtn = (hide, n) => `<button class="btn outline sm" data-act="crm-cols">${I('columns')} Columns${n ? ' · ' + n + ' off' : ''}</button>`;
+  const partiesPage = { title: 'CRM', crumb: 'CRM', render() {
+    ensureNos();
+    const rows = filtered(); const hid = Object.values(ui.hide).filter(Boolean).length; const seg = SEGS.find((s) => s.key === ui.seg) || SEGS[0];
+    const cols = PCOLS.filter((c) => !ui.hide[c.id]);
+    return `<div class="page wide">${crmHead('parties')}${cards()}${tabsSeg('parties')}
+      <div class="toolbar"><button class="btn outline sm" data-act="crm-view">${I('grid')} ${esc(seg.label)} ${I('chevD')}</button><div class="row gap12 right">${colsBtn(ui.hide, hid)}${DM.searchBox('crm-q', 'Search parties…', ui.q)}</div></div>
+      <div class="gridbox">${DM.table(cols, rows, { go: (p) => '/crm/accounts/' + p.id, pageSize: 50, empty: 'No parties match this view.' })}${rows.length ? gridFoot(rows.length, 'parties') : ''}</div></div>`;
+  }, after(view, { params }) { setTimeout(() => { const m = DM.match(DM.path()); if (m && m.pg === partiesPage || (m && m.pg.pattern === '/crm/accounts/:id')) syncDrawer(m.params.id); else syncDrawer(null); }, 0); } };
+  DM.page('/crm/accounts', partiesPage);
+  DM.act('crm-view', (el) => DM.menu(el, SEGS.map((s) => ({ label: `${s.label} · ${parties().filter(s.test).length}`, icon: ui.seg === s.key ? 'check' : 'grid', run: () => { ui.seg = s.key; DM.render(); } }))));
+  DM.act('crm-cols', (el) => DM.menu(el, PCOLS.filter((c) => c.id !== 'name').map((c) => ({ label: c.label, icon: ui.hide[c.id] ? 'eye' : 'check', run: () => { ui.hide[c.id] = !ui.hide[c.id]; DM.render(); } }))));
   DM.input('crm-q', (v) => { ui.q = v; DM.render(); });
-  DM.input('crm-owner', (v) => { ui.owner = v; DM.render(); });
-  DM.act('crm-sel', (el, e) => { e.stopPropagation(); const id = el.dataset.arg; ui.sel = ui.sel.includes(id) ? ui.sel.filter((x) => x !== id) : [...ui.sel, id]; DM.render(); });
-  DM.act('crm-sel-all', () => { const ids = filtered().map((p) => p.id); ui.sel = ids.every((i) => ui.sel.includes(i)) ? [] : ids; DM.render(); });
-  DM.act('crm-sel-clear', () => { ui.sel = []; DM.render(); });
-  DM.act('crm-export', () => { const rows = filtered(); const csv = ['Name,Type,City,GSTIN,Outstanding,Lifetime'].concat(rows.map((p) => [p.name, p.type, p.city, p.gstin, p.outstanding, p.lifetime].map((x) => '"' + (x ?? '') + '"').join(','))).join('\n'); try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'parties.csv'; a.click(); } catch (e) {} DM.toast(`Exported ${rows.length} parties`, 'download'); });
-  DM.act('crm-bulk-owner', () => DM.modal({ title: 'Assign owner', body: DM.field('Owner', 'o', { options: users().map((u) => u.name) }), actions: [{ label: 'Cancel', cls: 'outline' }, { label: 'Assign', run: (d) => { const u = users().find((x) => x.name === d.querySelector('[name=o]').value); ui.sel.forEach((id) => { const p = party(id); if (p && u) p.owner = u.id; }); DM.toast(`Assigned ${ui.sel.length} parties to ${u.name}`); ui.sel = []; DM.render(); } }] }));
-  DM.act('crm-bulk-tag', () => DM.modal({ title: 'Add tag', body: DM.field('Tag', 't', { ph: 'e.g. Festive push' }), actions: [{ label: 'Cancel', cls: 'outline' }, { label: 'Add tag', run: (d) => { const t = d.querySelector('[name=t]').value.trim(); if (!t) return false; ui.sel.forEach((id) => { const p = party(id); if (p) { p.tags = p.tags || []; if (!p.tags.includes(t)) p.tags.push(t); } }); DM.toast(`Tagged ${ui.sel.length} parties “${t}”`); ui.sel = []; DM.render(); } }] }));
-  DM.act('crm-bulk-block', () => DM.confirm('Block selected parties?', `${ui.sel.length} parties won’t be able to place orders until unblocked.`, () => { ui.sel.forEach((id) => { const p = party(id); if (p) p.status = 'blocked'; }); DM.toast('Parties blocked', 'lock'); ui.sel = []; DM.render(); }, 'Block'));
+  DM.act('crm-clear', () => { ui.seg = 'all'; ui.q = ''; ui.owner = 'all'; DM.render(); });
+  DM.act('crm-export', () => { const rows = filtered(); const csv = ['Number,Party,City,State,GSTIN,Outstanding,Lifetime'].concat(rows.map((p) => [p.no, p.name, p.city, stateOf(p), p.gstin, p.outstanding, p.lifetime].map((x) => '"' + (x ?? '') + '"').join(','))).join('\n'); try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'parties.csv'; a.click(); } catch (e) {} DM.toast(`Exported ${rows.length} parties`, 'download'); });
+
+  /* ───── right drawer for a party ───── */
+  let dEl = null; const dui = (ui.d = ui.d || { tab: 'overview', id: null });
+  const closeD = () => { const w = document.getElementById('drawer-wrap'); if (w) w.remove(); dEl = null; };
+  function drawerBody(p) {
+    const cts = ctsOf(p), orders = (S().orders || []).filter((o) => o.partyId === p.id && o.status !== 'cancelled'), threads = (S().threads || []).filter((t) => t.partyId === p.id);
+    const openChats = threads.filter((t) => t.status === 'open').length; const team = (p.team || (p.owner ? [p.owner] : [])).map((id) => DM.by(users(), id) || { id, name: uname(id) });
+    const tabs = DM.seg([{ key: 'overview', label: 'Overview' }, { key: 'people', label: 'People' }, { key: 'orders', label: 'Orders' }, { key: 'chats', label: 'Chats' }, { key: 'fields', label: 'All fields' }], dui.tab, 'crm-dtab');
+    const ordTbl = (list) => (list.length ? `<table class="dtbl"><thead><tr><th>Order</th><th>Date</th><th>Status</th><th style="text-align:right">Total</th></tr></thead><tbody>${list.map((o) => `<tr class="click" data-go="/orders/${o.id}"><td class="mono b">${esc(o.no)}</td><td>${F.date(o.placedAt)}</td><td>${DM.status(o.status, o.status === 'delivered' ? 'green' : 'blue')}</td><td style="text-align:right" class="mono">${F.inr(o.total)}</td></tr>`).join('')}</tbody></table>` : `<div class="empty-card" style="border:0;padding:30px"><span class="icotile lg">${I('package')}</span><div class="b" style="margin-top:8px">No confirmed orders yet</div><div class="muted sm">Orders from this party show up here.</div></div>`);
+    const peopleList = () => (cts.length ? cts.map((c) => `<div class="drow" data-go="/crm/contacts/${c.id}" style="cursor:pointer">${DM.avatar(c.name, 'sm')}<div class="grow"><div class="b sm">${esc(c.name)} ${c.primary ? DM.badge('Primary', 'blue') : ''}</div><div class="xs muted">${esc([c.role, c.phone].filter(Boolean).join(' · '))}</div></div>${I('chevR')}</div>`).join('') : `<div class="empty-card" style="border:0;padding:30px"><span class="icotile lg">${I('users')}</span><div class="b" style="margin-top:8px">No contacts yet</div><div class="muted sm">Contacts added to this party show up here.</div></div>`);
+    let body = '';
+    if (dui.tab === 'overview') {
+      body = `<div class="grid g3" style="margin:14px 0 0">${DM.statCard('Confirmed orders', orders.length, null, 'package')}${DM.statCard('Open chats', openChats, null, 'chat')}${DM.statCard('Contacts', cts.length, null, 'users')}</div>
+      <div class="row" style="margin:20px 0 8px"><b class="sm">Your account team</b><button class="btn ghost sm right" data-act="crm-team">Manage team</button></div>
+      <div class="card">${team.length ? team.map((u) => `<div class="drow">${DM.avatar(u.name, 'sm')}<div class="grow"><div class="b sm">${esc(u.name)}</div><div class="xs muted">${esc(u.role || '')}</div></div></div>`).join('') : `<div class="empty-card" style="border:0;padding:26px"><span class="icotile lg">${I('users')}</span><div class="b" style="margin-top:8px">Nobody assigned yet</div><div class="muted sm">Use Manage team to assign someone.</div></div>`}</div>
+      <div class="row" style="margin:20px 0 8px"><b class="sm">Contacts</b><span class="muted sm">${cts.length}</span><button class="btn outline sm right" data-act="crm-addc">${I('plus')} Add contact ${I('chevD')}</button></div>
+      <div class="card">${peopleList()}</div>
+      <div class="sm muted" style="margin:20px 0 8px">Confirmed orders · all contacts</div><div class="card"><div class="dh">Orders</div>${ordTbl(orders)}</div>`;
+    } else if (dui.tab === 'people') body = `<div class="row" style="margin:14px 0 8px"><b class="sm">People</b><span class="muted sm">${cts.length}</span><button class="btn outline sm right" data-act="crm-addc">${I('plus')} Add contact ${I('chevD')}</button></div><div class="card">${peopleList()}</div>`;
+    else if (dui.tab === 'orders') body = `<div class="card" style="margin-top:14px"><div class="dh">Orders</div>${ordTbl(orders)}</div>`;
+    else if (dui.tab === 'chats') body = `<div class="card" style="margin-top:14px">${threads.length ? threads.map((t) => `<div class="drow" data-go="/inbox/threads?case=${t.id}" style="cursor:pointer"><span class="monotag">${esc(t.caseNo || t.id)}</span><div class="grow"><div class="b sm trunc">${esc(t.subject || t.preview || t.channel)}</div><div class="xs muted trunc">${esc(t.preview || '')}</div></div>${DM.status(t.status === 'open' ? 'Open' : t.status === 'hold' ? 'On hold' : 'Closed', t.status === 'open' ? 'green' : 'grey')}</div>`).join('') : `<div class="empty-card" style="border:0;padding:30px"><span class="icotile lg">${I('chat')}</span><div class="b" style="margin-top:8px">No chats yet</div><div class="muted sm">Conversations with this party show up here.</div></div>`}</div>`;
+    else { const kv = [['Number', p.no], ['Name', p.name], ['Type', p.type], ['City', p.city], ['State', stateOf(p)], ['Region', p.region], ['WhatsApp', p.phone], ['Email', p.email], ['GSTIN', p.gstin], ['Payment terms', p.terms], ['Price band', p.priceBand], ['Credit limit', F.inr(p.creditLimit || 0)], ['Outstanding', F.inr(p.outstanding || 0)], ['Lifetime value', F.inrc(p.lifetime || 0)], ['Last order', p.lastOrderAt ? F.date(p.lastOrderAt) : '—'], ['Tags', (p.tags || []).join(', ') || '—']]; body = `<div class="row" style="margin:14px 0 8px"><b class="sm">All fields</b><button class="btn outline sm right" data-act="crm-edit" data-arg="${p.id}">${I('edit')} Edit</button></div><div class="card pad"><dl class="kv">${kv.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v || '—')}</dd>`).join('')}</dl></div>`; }
+    return `<div style="margin-top:4px">${tabs}</div>${body}`;
+  }
+  function openDrawer(p) {
+    closeD(); dui.id = p.id;
+    const n = ctsOf(p).length;
+    const title = `<div><div class="row" style="gap:10px"><span style="font-size:16px;font-weight:600">${esc(p.name)}</span><span class="muted sm" style="font-weight:400">${n} contact${n === 1 ? '' : 's'}</span></div><div class="row" style="margin-top:6px;gap:8px;font-weight:400"><span class="mono xs">${esc(p.no)}</span><span class="muted xs">${esc([p.city, stateOf(p)].filter((x) => x && x !== '—').join(', '))}</span>${cstatus(p)}</div></div>`;
+    dEl = DM.drawer({ title, body: drawerBody(p), actions: `<button class="btn outline icon sm" style="color:#e03a3a;margin-right:6px" data-act="crm-del" data-arg="${p.id}" title="Delete party">${I('trash')}</button>` });
+    const dr = dEl.querySelector('.drawer'); const x = dr.querySelector('[data-act="close-drawer"]'); if (x) { x.dataset.act = 'crm-close'; x.className = 'btn outline icon sm'; }
+    dr.insertAdjacentHTML('beforeend', `<div class="drawer-f"><button class="btn outline" data-act="crm-close">Close</button></div>`);
+    dEl.addEventListener('mousedown', (e) => { if (e.target === dEl) setTimeout(() => DM.go('/crm/accounts'), 0); });
+  }
+  function syncDrawer(id) { const w = document.getElementById('drawer-wrap'); if (!id) { if (w && dEl) closeD(); return; } const p = party(id); if (p) { if (!w || dui.id !== id || !dEl) { if (dui.id !== id) dui.tab = 'overview'; openDrawer(p); } } }
+  const repaintD = () => { const p = party(dui.id); if (!p || !dEl) return; dEl.querySelector('.modal-b').innerHTML = drawerBody(p); };
+  DM.act('crm-close', () => { closeD(); dui.id = null; DM.go('/crm/accounts'); });
+  DM.act('crm-dtab', (el) => { dui.tab = el.dataset.arg; repaintD(); });
+  DM.act('crm-del', (el) => DM.confirm('Delete this party?', 'The party and its contacts are removed from the CRM.', () => { const id = el.dataset.arg; S().parties = parties().filter((p) => p.id !== id); S().contacts = contacts().filter((c) => c.partyId !== id); closeD(); dui.id = null; DM.toast('Party deleted', 'trash'); DM.go('/crm/accounts'); }, 'Delete'));
+  DM.act('crm-team', () => { const p = party(dui.id); const cur = p.team || (p.owner ? [p.owner] : []); DM.modal({ title: 'Manage team', body: `<p class="muted sm" style="margin-bottom:10px">People who look after ${esc(p.name)}.</p><div class="col" style="gap:6px">${users().map((u) => `<label class="row" style="padding:6px 8px;border:1px solid var(--border);border-radius:8px"><input type="checkbox" name="u_${u.id}" ${cur.includes(u.id) ? 'checked' : ''}>${DM.avatar(u.name, 'sm')}<span class="grow">${esc(u.name)}</span><span class="xs muted">${esc(u.role || '')}</span></label>`).join('')}</div>`, actions: [{ label: 'Cancel', cls: 'outline' }, { label: 'Save team', run: (d) => { const ids = users().filter((u) => d.querySelector(`[name=u_${u.id}]`).checked).map((u) => u.id); p.team = ids; p.owner = ids[0] || ''; DM.toast('Account team updated'); DM.render(); } }] }); });
+  DM.act('crm-addc', (el) => DM.menu(el, [{ label: 'New contact', icon: 'plus', run: () => DM.go('/crm/contacts/new?party=' + dui.id) }, { label: 'Link an existing contact', icon: 'link', run: () => { const p = party(dui.id); const free = contacts().filter((c) => c.partyId !== p.id); DM.modal({ title: 'Link an existing contact', body: free.length ? DM.field('Contact', 'cid', { options: free.map((c) => c.name + ' · ' + ((party(c.partyId) || {}).name || 'no party')) }) : '<p class="muted">No other contacts to link.</p>', actions: [{ label: 'Cancel', cls: 'outline' }, ...(free.length ? [{ label: 'Link', run: (d) => { const i = d.querySelector('[name=cid]').selectedIndex; const c = free[i]; c.partyId = p.id; DM.toast(`${c.name} linked to ${p.name}`, 'link'); DM.render(); } }] : [])] }); } }]));
+  window.addEventListener('hashchange', () => { if (!/^#\/crm\/accounts\/(?!create)[^/?]+/.test(location.hash)) { closeD(); dui.id = null; } });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && /^#\/crm\/accounts\/(?!create)[^/]+/.test(location.hash)) { dui.id = null; setTimeout(() => DM.go('/crm/accounts'), 0); } });
 
   /* ───── create party ───── */
   const ownerSel = (val) => `<div class="field"><label>Owner</label><select class="select" name="owner">${users().map((u) => `<option value="${u.id}" ${u.id === val ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select></div>`;
@@ -79,41 +134,7 @@
     parties().unshift(p); DM.toast(`${p.name} added`); DM.go('/crm/accounts/' + p.id);
   });
 
-  /* ───── party record ───── */
-  const RT = [['overview', 'Overview'], ['orders', 'Orders'], ['chats', 'Chats'], ['contacts', 'Contacts'], ['quotes', 'Quotes'], ['activity', 'Activity'], ['credit', 'Credit']];
-  DM.page('/crm/accounts/:id', { title: 'Party', crumb: (p) => (party(p.id) || {}).name || 'Party', render({ params, q }) {
-    const p = party(params.id); if (!p) return `<div class="page"><div class="empty"><h3>Party not found</h3><a class="btn outline" href="#/crm/accounts">Back to parties</a></div></div>`;
-    const tab = q.get('tab') || 'overview';
-    const orders = (S().orders || []).filter((o) => o.partyId === p.id), threads = (S().threads || []).filter((t) => t.partyId === p.id), quotes = (S().quotes || []).filter((x) => x.partyId === p.id), cts = contacts().filter((c) => c.partyId === p.id);
-    const tabs = `<div class="tabs">${RT.map(([k, l]) => `<a class="tab ${tab === k ? 'on' : ''}" href="#/crm/accounts/${p.id}?tab=${k}">${l}${k === 'orders' ? ` <span class="badge">${orders.length}</span>` : k === 'chats' ? ` <span class="badge">${threads.length}</span>` : k === 'contacts' ? ` <span class="badge">${cts.length}</span>` : k === 'quotes' ? ` <span class="badge">${quotes.length}</span>` : ''}</a>`).join('')}</div>`;
-    let body = '';
-    if (tab === 'overview') {
-      body = `<div class="grid" style="grid-template-columns:2fr 1fr;align-items:start"><div class="col gap16"><div class="grid g3">${DM.stat('Lifetime value', F.inrc(p.lifetime || 0))}${DM.stat('Orders (30d)', p.orders30d ?? 0)}${DM.stat('Outstanding', F.inr(p.outstanding || 0), over(p) ? 'Over limit' : 'Within limit', { tone: over(p) ? 'down' : 'up' })}</div>
-        <div class="card"><div class="card-h"><h3>Recent orders</h3><a class="btn ghost sm right" href="#/crm/accounts/${p.id}?tab=orders">View all</a></div>${orders.slice(0, 4).map((o) => `<div class="listrow" data-go="/orders/${o.id}"><div class="grow"><div class="b sm">${esc(o.no)}</div><div class="xs muted">${F.date(o.placedAt)} · ${esc(o.channel || '')}</div></div><div class="mono sm">${F.inr(o.total)}</div>${DM.badge(o.status, o.status === 'delivered' ? 'green' : 'blue')}</div>`).join('') || '<div class="empty sm">No orders yet.</div>'}</div></div>
-        <div class="card pad"><dl class="kv"><dt>Type</dt><dd>${esc(p.type || '—')}</dd><dt>Owner</dt><dd>${esc(uname(p.owner))}</dd><dt>Phone</dt><dd>${esc(p.phone || '—')}</dd><dt>Email</dt><dd>${esc(p.email || '—')}</dd><dt>GSTIN</dt><dd class="mono">${esc(p.gstin || '—')}</dd><dt>City</dt><dd>${esc([p.city, p.region].filter(Boolean).join(', ') || '—')}</dd><dt>Terms</dt><dd>${esc(p.terms || '—')}</dd><dt>Price band</dt><dd>${esc(p.priceBand || '—')}</dd><dt>Tags</dt><dd>${(p.tags || []).map((t) => DM.badge(t)).join(' ') || '<span class="muted">none</span>'} <button class="btn ghost sm icon" data-act="crm-addtag" data-arg="${p.id}">${I('plus')}</button></dd></dl></div></div>`;
-    } else if (tab === 'orders') {
-      body = DM.table([{ label: 'Order', render: (o) => `<b>${esc(o.no)}</b>` }, { label: 'Placed', render: (o) => F.date(o.placedAt) }, { label: 'Channel', k: 'channel' }, { label: 'Payment', render: (o) => DM.badge(o.payment, o.payment === 'Paid' ? 'green' : 'amber') }, { label: 'Status', render: (o) => DM.badge(o.status, o.status === 'delivered' ? 'green' : 'blue') }, { label: 'Total', num: 1, render: (o) => F.inr(o.total) }], orders, { go: (o) => '/orders/' + o.id, empty: 'No orders from this party yet.' });
-    } else if (tab === 'chats') {
-      body = threads.length ? `<div class="card">${threads.map((t) => `<div class="listrow" data-go="/inbox/threads?case=${t.id}"><span class="badge outline">${esc(t.channel)}</span><div class="grow"><div class="b sm">${esc(t.subject || t.preview)}</div><div class="xs muted trunc">${esc(t.preview || '')}</div></div><span class="xs muted">${F.ago(t.lastAt)}</span>${t.unread ? `<span class="unread">${t.unread}</span>` : ''}</div>`).join('')}</div>` : '<div class="card"><div class="empty">No conversations with this party.</div></div>';
-    } else if (tab === 'contacts') {
-      body = `<div class="row" style="margin-bottom:10px"><span class="muted sm">${cts.length} people at ${esc(p.name)}</span><a class="btn sm right" href="#/crm/contacts/new?party=${p.id}">${I('plus')} Add contact</a></div>` + DM.table([{ label: 'Name', render: (c) => `<div class="row">${DM.avatar(c.name, 'sm')}<b>${esc(c.name)}</b>${c.primary ? DM.badge('Primary', 'blue') : ''}</div>` }, { label: 'Role', k: 'role' }, { label: 'Phone', k: 'phone' }, { label: 'Email', k: 'email' }], cts, { go: (c) => '/crm/contacts/' + c.id, empty: 'No contacts yet.' });
-    } else if (tab === 'quotes') {
-      body = DM.table([{ label: 'Quote', render: (x) => `<b>${esc(x.no)}</b>` }, { label: 'Created', render: (x) => F.date(x.createdAt) }, { label: 'Valid till', render: (x) => F.date(x.validTill) }, { label: 'Margin', num: 1, render: (x) => (x.marginPct ?? '—') + '%' }, { label: 'Status', render: (x) => DM.badge(x.status.replace('_', ' '), x.status === 'accepted' ? 'green' : x.status === 'pending_approval' ? 'amber' : 'blue') }, { label: 'Total', num: 1, render: (x) => F.inr(x.total) }], quotes, { go: (x) => '/quotes/' + x.id, empty: 'No quotes sent.' });
-    } else if (tab === 'activity') {
-      const ev = [];
-      orders.forEach((o) => ev.push({ at: o.placedAt, text: `Order ${o.no} placed · ${F.inr(o.total)}` }));
-      quotes.forEach((x) => ev.push({ at: x.createdAt, text: `Quote ${x.no} ${x.status.replace('_', ' ')}` }));
-      threads.forEach((t) => ev.push({ at: t.lastAt, text: `${t.channel} conversation: ${t.preview || t.subject}` }));
-      (S().logs || []).filter((l) => String(l.target || '').includes(p.name)).forEach((l) => ev.push({ at: l.at, text: `${l.actor}: ${l.action}` }));
-      ev.sort((a, b) => new Date(b.at) - new Date(a.at));
-      body = `<div class="card pad">${ev.length ? `<div class="tl">${ev.map((e) => `<div class="ev"><div class="sm">${esc(e.text)}</div><div class="xs muted">${F.dt(e.at)}</div></div>`).join('')}</div>` : '<div class="empty">No activity yet.</div>'}</div>`;
-    } else if (tab === 'credit') {
-      const used = p.creditLimit ? Math.min(100, ((p.outstanding || 0) / p.creditLimit) * 100) : 0;
-      body = `<div class="grid g2" style="align-items:start"><div class="card pad col gap12"><div class="row"><h3>Credit</h3><button class="btn outline sm right" data-act="crm-credit" data-arg="${p.id}">${I('edit')} Edit limit</button></div><div class="row"><div class="v b" style="font-size:24px">${F.inr(p.outstanding || 0)}</div><span class="muted sm">of ${F.inr(p.creditLimit || 0)}</span>${over(p) ? DM.badge('Over limit', 'red') : ''}</div><div class="bar" style="height:8px"><i style="width:${used}%;background:${over(p) ? 'var(--destructive)' : 'var(--chart-2)'}"></i></div><div class="xs muted">${Math.round(used)}% utilised · terms ${esc(p.terms || '—')}</div></div>
-      <div class="card pad col gap12"><h3>Controls</h3><div class="row"><div class="grow"><div class="sm b">Block new orders</div><div class="xs muted">Anuma will hand orders from this party to a human.</div></div>${DM.switch(p.status === 'blocked', 'crm-block', p.id)}</div><div class="row"><div class="grow"><div class="sm b">Send payment reminder</div><div class="xs muted">WhatsApp nudge for ${F.inr(p.outstanding || 0)}.</div></div><button class="btn outline sm" data-act="crm-remind" data-arg="${p.id}">${I('send')} Send</button></div></div></div>`;
-    }
-    return `<div class="page"><a class="btn ghost sm" href="#/crm/accounts">${I('arrowL')} Parties</a><div class="rec-head" style="margin-top:6px">${DM.avatar(p.name, 'lg')}<div class="grow"><h1 style="font-size:20px;font-weight:600">${esc(p.name)}</h1><div class="muted sm">${esc([p.type, p.city, p.region].filter(Boolean).join(' · '))} ${statusBadge(p)}</div></div><button class="btn outline" data-act="crm-edit" data-arg="${p.id}">${I('edit')} Edit</button><button class="btn outline" data-go="/inbox/threads${threads[0] ? '?case=' + threads[0].id : ''}">${I('chat')} Message</button><button class="btn" data-act="crm-draft" data-arg="${p.id}">${I('plus')} New draft order</button></div>${tabs}${body}</div>`;
-  } });
+  DM.page('/crm/accounts/:id', Object.assign({}, partiesPage, { title: 'CRM', crumb: (p) => (party(p.id) || {}).name || 'Party' }));
   DM.act('crm-addtag', (el) => DM.modal({ title: 'Add tag', body: DM.field('Tag', 't'), actions: [{ label: 'Cancel', cls: 'outline' }, { label: 'Add', run: (d) => { const t = d.querySelector('[name=t]').value.trim(); if (!t) return false; const p = party(el.dataset.arg); p.tags = (p.tags || []).concat(t); DM.render(); } }] }));
   DM.act('crm-block', (el) => { const p = party(el.dataset.arg); p.status = p.status === 'blocked' ? 'active' : 'blocked'; DM.toast(p.status === 'blocked' ? 'Party blocked' : 'Party unblocked', 'lock'); DM.render(); });
   DM.act('crm-remind', (el) => { const p = party(el.dataset.arg); DM.toast(`Reminder sent to ${p.name} on WhatsApp`, 'send'); });
@@ -122,15 +143,25 @@
   DM.act('crm-draft', (el) => { const p = party(el.dataset.arg); const prod = (S().products || [])[0]; const n = (S().drafts || []).length + 1; const d = { id: DM.uid('d'), no: 'DRF-' + (1000 + n + Math.floor(Math.random() * 90)), partyId: p.id, status: 'pending', total: prod ? prod.price * 10 : 0, createdAt: new Date().toISOString(), by: 'You', note: 'Created from CRM', lines: prod ? [{ productId: prod.id, name: prod.name, qty: 10, unit: prod.unit, price: prod.price, state: 'pending' }] : [] }; (S().drafts = S().drafts || []).unshift(d); DM.toast('Draft order created'); DM.go('/orders/drafts/' + d.id); });
 
   /* ───── contacts ───── */
-  DM.page('/crm/contacts', { title: 'CRM · Contacts', crumb: 'Contacts', render() {
-    const q = ui.cq.toLowerCase().trim();
-    const rows = contacts().filter((c) => (ui.cparty === 'all' || c.partyId === ui.cparty) && (!q || [c.name, c.role, c.phone, c.email, (party(c.partyId) || {}).name].join(' ').toLowerCase().includes(q)));
-    return `<div class="page">${DM.header('CRM', 'People at the parties you trade with.', `<a class="btn" href="#/crm/contacts/new">${I('plus')} New contact</a>`)}${crmTabs('contacts')}
-      <div class="row" style="margin-bottom:12px">${DM.searchBox('crm-cq', 'Search name, phone, party…', ui.cq)}<select class="select" style="width:210px" data-change="crm-cparty"><option value="all">All parties</option>${parties().map((p) => `<option value="${p.id}" ${ui.cparty === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select><span class="muted sm right">${rows.length} contacts</span></div>
-      ${DM.table([{ label: 'Name', render: (c) => `<div class="row">${DM.avatar(c.name, 'sm')}<b>${esc(c.name)}</b>${c.primary ? DM.badge('Primary', 'blue') : ''}</div>` }, { label: 'Party', render: (c) => esc((party(c.partyId) || {}).name || '—') }, { label: 'Role', k: 'role' }, { label: 'Phone', k: 'phone' }, { label: 'Email', k: 'email' }], rows, { go: (c) => '/contacts/'.replace('/contacts/', '/crm/contacts/') + c.id, empty: 'No contacts match.' })}</div>`;
+  const CCOLS = [
+    { id: 'name', label: 'Contact', flex: 2, render: (c) => `<div class="row" style="gap:8px">${DM.avatar(c.name, 'sm')}<b>${esc(c.name)}</b>${c.primary ? DM.badge('Primary', 'blue') : ''}</div>` },
+    { id: 'party', label: 'Party', flex: 2, render: (c) => esc((party(c.partyId) || {}).name || '—') },
+    { id: 'role', label: 'Role', render: (c) => esc(c.role || '—') },
+    { id: 'phone', label: 'WhatsApp', render: (c) => esc(c.phone || '—') },
+    { id: 'email', label: 'Email', flex: 2, render: (c) => esc(c.email || '—') },
+    { id: 'chats', label: 'Chats', num: 1, w: '90px', render: (c) => (S().threads || []).filter((t) => t.contactId === c.id).length || '—' },
+  ];
+  DM.page('/crm/contacts', { title: 'CRM · Contacts', crumb: 'CRM', render() {
+    const q = ui.cq.toLowerCase().trim(); ensureNos();
+    const rows = contacts().filter((c) => (ui.cparty === 'all' || c.partyId === ui.cparty) && (!q || [c.name, c.role, c.phone, c.email, (party(c.partyId) || {}).name].join(' ').toLowerCase().includes(q))).sort((a, b) => a.name.localeCompare(b.name));
+    const hid = Object.values(ui.chide).filter(Boolean).length; const pn = ui.cparty === 'all' ? 'All contacts' : (party(ui.cparty) || {}).name;
+    return `<div class="page wide">${crmHead('contacts')}${cards()}${tabsSeg('contacts')}
+      <div class="toolbar"><button class="btn outline sm" data-act="crm-cview">${I('grid')} ${esc(pn)} ${I('chevD')}</button><div class="row gap12 right"><button class="btn outline sm" data-act="crm-ccols">${I('columns')} Columns${hid ? ' · ' + hid + ' off' : ''}</button>${DM.searchBox('crm-cq', 'Search contacts…', ui.cq)}</div></div>
+      <div class="gridbox">${DM.table(CCOLS.filter((c) => !ui.chide[c.id]), rows, { go: (c) => '/crm/contacts/' + c.id, pageSize: 50, empty: 'No contacts match.' })}${rows.length ? gridFoot(rows.length, 'contacts') : ''}</div></div>`;
   } });
+  DM.act('crm-cview', (el) => DM.menu(el, [{ label: 'All contacts', icon: ui.cparty === 'all' ? 'check' : 'grid', run: () => { ui.cparty = 'all'; DM.render(); } }].concat(parties().slice(0, 18).map((p) => ({ label: p.name, icon: ui.cparty === p.id ? 'check' : 'building', run: () => { ui.cparty = p.id; DM.render(); } })))));
+  DM.act('crm-ccols', (el) => DM.menu(el, CCOLS.filter((c) => c.id !== 'name').map((c) => ({ label: c.label, icon: ui.chide[c.id] ? 'eye' : 'check', run: () => { ui.chide[c.id] = !ui.chide[c.id]; DM.render(); } }))));
   DM.input('crm-cq', (v) => { ui.cq = v; DM.render(); });
-  DM.input('crm-cparty', (v) => { ui.cparty = v; DM.render(); });
 
   const cform = (c, pid) => `<form id="contact-form" class="card pad col gap16" onsubmit="return false"><div class="grid g2">${DM.field('Full name *', 'name', { value: c.name })}<div class="field"><label>Party</label><select class="select" name="partyId">${parties().map((p) => `<option value="${p.id}" ${p.id === (c.partyId || pid) ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></div>${DM.field('Role', 'role', { value: c.role, ph: 'Owner, Accounts, Purchase…' })}${DM.field('Phone', 'phone', { value: c.phone, ph: '+91 …' })}${DM.field('Email', 'email', { value: c.email, type: 'email' })}<label class="row" style="padding-top:22px"><input type="checkbox" name="primary" ${c.primary ? 'checked' : ''}> Primary contact for the party</label></div></form>`;
   DM.page('/crm/contacts/new', { title: 'New contact', crumb: 'New contact', render({ q }) {

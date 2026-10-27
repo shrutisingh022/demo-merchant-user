@@ -13,6 +13,7 @@
   .ss{max-width:760px;margin:0 auto;padding:24px 16px 80px}.ss .hero{border-radius:16px;padding:22px;color:#fff;background:linear-gradient(135deg,#171717,#404040)}
   .qty{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:8px;overflow:hidden}.qty button{width:28px;height:28px}.qty button:hover{background:var(--muted)}.qty span{min-width:30px;text-align:center;font-variant-numeric:tabular-nums;font-size:13px}
   .cartbar{position:sticky;bottom:12px;margin-top:18px;background:#171717;color:#fff;border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 10px 30px rgba(0,0,0,.25)}.cartbar .btn{background:#fff;color:#171717;border-color:#fff}`;
+  st.textContent += `.child-row{background:#fafafa}.chev{display:inline-grid;place-items:center;width:20px;vertical-align:middle;color:var(--muted-foreground)}.chev svg.i{width:14px;height:14px}`;
   document.head.appendChild(st);
 
   const S = () => DM.S;
@@ -27,22 +28,64 @@
   const stockBadge = (n) => (n <= 0 ? DM.badge('Out of stock', 'red') : n < 20 ? DM.badge('Low · ' + n, 'amber') : DM.badge(F.num(n) + ' in stock', 'green'));
   const cats = () => ['All', ...new Set(prods().map((p) => p.category).filter(Boolean))];
 
-  function list() {
-    const q = ui.q.toLowerCase().trim();
-    return prods().filter((p) => (ui.cat === 'All' || p.category === ui.cat) && (ui.status === 'all' || p.status === ui.status) && (!q || [p.name, p.sku, p.brand, p.category].join(' ').toLowerCase().includes(q)));
+  /* ───── list: styles (parent) → variants (child), live NuHome "Collapsed | Expanded" grid ───── */
+  Object.assign(ui, { mode: ui.mode || 'collapsed', open: ui.open || {}, hide: ui.hide || { brand: true } });
+  function styleOf(p) {
+    if (p.attrs && p.attrs.Design) return { key: 'd' + p.attrs.Design, code: 'Design ' + p.attrs.Design };
+    if (DM.uc === 'newhome' && / leaf \d+/i.test(p.name)) { const c = p.name.replace(/\s*leaf\s*\d+/i, '').trim(); return { key: 'n' + c, code: c }; }
+    return { key: 'p' + p.id, code: p.name };
   }
-  DM.page('/products', { title: 'Products', crumb: 'Catalogue', render() {
-    const rows = list(), all = prods();
-    return `<div class="page">${DM.header('Products', 'Your catalogue — SKUs, variants, price bands and stock.', `<a class="btn outline" href="#/stock/main" >${I('ext')} Stock sheet</a><a class="btn outline" href="#/products/import">${I('upload')} Import</a><a class="btn" href="#/products/create">${I('plus')} New product</a>`)}
-    <div class="grid g4" style="margin-bottom:14px">${DM.stat('Products', all.length, `${all.filter((p) => p.status === 'active').length} active`, { icon: 'package' })}${DM.stat('Categories', cats().length - 1, '', { icon: 'tag' })}${DM.stat('Low stock', all.filter((p) => p.stock > 0 && p.stock < 20).length, 'under 20 units', { icon: 'alert', tone: 'down' })}${DM.stat('Stock value', F.inrc(all.reduce((a, p) => a + p.price * (p.stock || 0), 0)), 'at list price', { icon: 'rupee' })}</div>
-    <div class="row wrap" style="margin-bottom:12px">${DM.searchBox('prod-q', 'Search name, SKU, brand…', ui.q)}<select class="select" style="width:180px" data-change="prod-cat">${cats().map((c) => `<option ${c === ui.cat ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select><select class="select" style="width:140px" data-change="prod-status">${[['all', 'All statuses'], ['active', 'Active'], ['draft', 'Draft']].map(([v, l]) => `<option value="${v}" ${ui.status === v ? 'selected' : ''}>${l}</option>`).join('')}</select><span class="muted sm">${rows.length} products</span><span class="right">${DM.pills([{ key: 'table', label: 'Table' }, { key: 'grid', label: 'Grid' }], ui.view, 'prod-view')}</span></div>
-    ${!rows.length ? `<div class="tblwrap"><div class="empty"><h3>No products match</h3><p style="margin-top:10px"><button class="btn outline" data-act="prod-clear">Clear filters</button></p></div></div>` : ui.view === 'grid' ? `<div class="pgrid">${rows.map((p) => `<div class="card pcard" data-go="/products/${p.id}"><div style="height:110px;background:${esc(p.color || DM.color(p.name))}22;display:grid;place-items:center">${tile(p, 56)}</div><div style="padding:10px 12px"><div class="b sm trunc">${esc(p.name)}</div><div class="xs muted">${esc(p.sku)} · ${esc(p.category || '')}</div><div class="row" style="margin-top:8px"><b class="mono">${F.inr(p.price)}</b><span class="xs muted">/${esc(p.unit || 'pc')}</span><span class="right">${p.status === 'draft' ? DM.badge('Draft') : ''}</span></div><div style="margin-top:6px">${stockBadge(p.stock)}</div></div></div>`).join('')}</div>` : DM.table([{ label: 'Product', render: (p) => `<div class="row">${tile(p, 34)}<div><div class="b">${esc(p.name)}</div><div class="xs muted">${esc(p.sku)}${p.brand ? ' · ' + esc(p.brand) : ''}</div></div></div>` }, { label: 'Category', k: 'category' }, { label: 'Variants', num: 1, render: (p) => (p.variants || []).length || '—' }, { label: 'Price', num: 1, render: (p) => `${F.inr(p.price)}<span class="xs muted">/${esc(p.unit || 'pc')}</span>` }, { label: 'MRP', num: 1, render: (p) => F.inr(p.mrp) }, { label: 'Stock', render: (p) => stockBadge(p.stock) }, { label: 'Status', render: (p) => DM.badge(p.status === 'draft' ? 'Draft' : 'Active', p.status === 'draft' ? '' : 'green', 1) }], rows, { go: (p) => '/products/' + p.id })}</div>`;
+  function buildStyles() {
+    const q = ui.q.toLowerCase().trim(); const map = new Map();
+    prods().forEach((p) => {
+      if (ui.cat !== 'All' && p.category !== ui.cat) return; if (ui.status !== 'all' && p.status !== ui.status) return;
+      const s = styleOf(p); if (!map.has(s.key)) map.set(s.key, { key: s.key, code: s.code, products: [] }); map.get(s.key).products.push(p);
+    });
+    const out = [];
+    map.forEach((g) => {
+      const multi = g.products.length > 1; const rows = [];
+      g.products.forEach((p) => {
+        const shade = (p.attrs && p.attrs.Shade) || (multi ? p.name.replace(g.code, '').trim() : '');
+        if ((p.variants || []).length > 1) (p.variants).forEach((v) => rows.push({ label: (shade ? shade + ' · ' : '') + v.label, sku: v.sku, price: v.price, stock: v.stock, pid: p.id }));
+        else rows.push({ label: shade || p.name, sku: p.sku, price: p.price, stock: p.stock, pid: p.id });
+      });
+      const hay = [g.code, ...g.products.map((p) => [p.name, p.sku, p.brand, p.category].join(' ')), ...rows.map((r) => r.label + ' ' + r.sku)].join(' ').toLowerCase();
+      if (q && !hay.includes(q)) return;
+      const pr = rows.map((r) => r.price); const f = g.products[0];
+      out.push({ rid: 's:' + g.key, kind: 'style', key: g.key, code: g.code, count: rows.length, category: f.category, brand: f.brand, pmin: Math.min(...pr), pmax: Math.max(...pr), stock: rows.reduce((a, r) => a + (r.stock || 0), 0), status: g.products.some((p) => p.status === 'active') ? 'active' : 'draft', pid: f.id, rows });
+    });
+    return out.sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
+  }
+  let curRows = [];
+  const PC = [
+    { id: 'sr', label: 'SR · Style reference', flex: 2, render: (r) => r.kind === 'style' ? `<span class="chev">${I(ui.open[r.key] ? 'chevD' : 'chevR')}</span><b>${esc(r.code)}</b> <span class="muted" style="margin-left:4px">${r.count}</span>` : `<span style="padding-left:30px" class="muted">└</span> <span>${esc(r.label)}</span> <span class="mono xs muted" style="margin-left:6px">${esc(r.sku || '')}</span>` },
+    { id: 'category', label: 'Category', flex: 2, render: (r) => (r.kind === 'style' ? esc(r.category || '') : '') },
+    { id: 'brand', label: 'Brand', render: (r) => (r.kind === 'style' ? esc(r.brand || '—') : '') },
+    { id: 'price', label: 'Price', num: 1, w: '130px', render: (r) => (r.kind === 'style' ? (r.pmin === r.pmax ? F.inr(r.pmin) : `<span class="muted">from</span> ${F.inr(r.pmin)}`) : F.inr(r.price)) },
+    { id: 'stock', label: 'Stock', num: 1, w: '110px', render: (r) => { const n = r.stock || 0; return `<span class="${n <= 0 ? 'down' : n < 20 ? '' : ''}">${F.num(n)}</span>`; } },
+    { id: 'status', label: 'Status', w: '150px', render: (r) => (r.kind === 'style' ? `<span class="row" style="gap:8px">${DM.status(r.status === 'active' ? 'Active' : 'Draft', r.status === 'active' ? 'green' : 'grey')}<a class="btn ghost icon sm" href="#/products/${r.pid}" title="Open product">${I('ext')}</a></span>` : '') },
+  ];
+  const gridFoot = (n, noun) => (n > 50 ? '' : `<div class="gridfoot"><span>${F.num(n)} ${noun} in view</span><span class="grow"></span><span class="pg">50 / page ${I('chevD')}</span><span>1–${n} of ${F.num(n)}</span><span class="pn">${I('chevL')}</span><span class="pn">${I('chevR')}</span></div>`);
+  DM.page('/products', { title: 'Products', crumb: 'Products', render() {
+    const styles = buildStyles(); const all = new Set(prods().map((p) => styleOf(p).key)).size;
+    curRows = []; styles.forEach((r) => { curRows.push(r); if (ui.open[r.key]) r.rows.forEach((v, i) => curRows.push({ rid: 'v:' + r.key + ':' + i, kind: 'var', ...v })); });
+    const hid = Object.values(ui.hide).filter(Boolean).length;
+    const vlabel = ui.cat !== 'All' ? ui.cat : ui.status === 'draft' ? 'Draft styles' : ui.status === 'active' ? 'Active styles' : 'All styles';
+    return `<div class="page wide"><div class="ph"><div><h1>Products</h1><p>${F.num(all)} style${all === 1 ? '' : 's'}</p></div><div class="acts"><a class="btn outline" href="#/stock/main">${I('ext')} Stock sheet</a><a class="btn outline" href="#/products/import">${I('upload')} Import</a><button class="btn outline" data-act="prod-cats">${I('tag')} Categories</button><a class="btn" href="#/products/create">${I('plus')} New product</a></div></div>
+      <div class="toolbar"><button class="btn outline sm" data-act="prod-vmenu">${I('grid')} ${esc(vlabel)} ${I('chevD')}</button>${DM.seg([{ key: 'collapsed', label: 'Collapsed', icon: 'chevU' }, { key: 'expanded', label: 'Expanded', icon: 'chevD' }], ui.mode, 'prod-mode')}<div class="row gap12 right"><button class="btn outline sm" data-act="prod-cols">${I('columns')} Columns${hid ? ' · ' + hid + ' off' : ''}</button>${DM.searchBox('prod-q', 'Search styles…', ui.q)}</div></div>
+      <div class="gridbox">${DM.table(PC.filter((c) => !ui.hide[c.id]), curRows, { click: 'prod-row', idKey: 'rid', pageSize: 50, rowCls: (r) => (r.kind === 'var' ? 'child-row' : ''), empty: 'No styles match this view.' })}${styles.length ? gridFoot(curRows.length, curRows.length === styles.length ? 'styles' : 'rows') : ''}</div></div>`;
   } });
+  DM.act('prod-row', (el) => { const r = curRows.find((x) => x.rid === el.dataset.arg); if (!r) return; if (r.kind === 'style') { ui.open[r.key] = !ui.open[r.key]; ui.mode = Object.values(ui.open).some(Boolean) ? (buildStyles().every((x) => ui.open[x.key]) ? 'expanded' : ui.mode) : 'collapsed'; DM.render(); } else DM.go('/products/' + r.pid); });
+  DM.act('prod-mode', (el) => { ui.mode = el.dataset.arg; ui.open = {}; if (ui.mode === 'expanded') buildStyles().forEach((r) => (ui.open[r.key] = true)); DM.render(); });
+  DM.act('prod-vmenu', (el) => DM.menu(el, [{ label: 'All styles', icon: ui.cat === 'All' && ui.status === 'all' ? 'check' : 'grid', run: () => { ui.cat = 'All'; ui.status = 'all'; DM.render(); } }, { label: 'Active styles', icon: ui.status === 'active' ? 'check' : 'grid', run: () => { ui.status = 'active'; ui.cat = 'All'; DM.render(); } }, { label: 'Draft styles', icon: ui.status === 'draft' ? 'check' : 'grid', run: () => { ui.status = 'draft'; ui.cat = 'All'; DM.render(); } }].concat(cats().slice(1).map((c) => ({ label: c, icon: ui.cat === c ? 'check' : 'tag', run: () => { ui.cat = c; ui.status = 'all'; DM.render(); } })))));
+  DM.act('prod-cols', (el) => DM.menu(el, PC.filter((c) => c.id !== 'sr').map((c) => ({ label: c.label, icon: ui.hide[c.id] ? 'eye' : 'check', run: () => { ui.hide[c.id] = !ui.hide[c.id]; DM.render(); } }))));
   DM.input('prod-q', (v) => { ui.q = v; DM.render(); });
-  DM.input('prod-cat', (v) => { ui.cat = v; DM.render(); });
-  DM.input('prod-status', (v) => { ui.status = v; DM.render(); });
-  DM.act('prod-view', (el) => { ui.view = el.dataset.arg; DM.render(); });
   DM.act('prod-clear', () => { ui.q = ''; ui.cat = 'All'; ui.status = 'all'; DM.render(); });
+  DM.act('prod-cats', () => {
+    const list = () => cats().slice(1).map((c) => `<div class="row" style="padding:6px 0;border-bottom:1px solid var(--border)"><input class="input" style="max-width:260px" data-cat-old="${esc(c)}" value="${esc(c)}"><span class="muted sm grow">${prods().filter((p) => p.category === c).length} products</span><button class="btn ghost icon sm" data-cat-del="${esc(c)}" title="Delete">${I('trash')}</button></div>`).join('');
+    DM.modal({ title: 'Categories', lg: 1, body: `<p class="muted sm" style="margin-bottom:10px">Rename a category to update every product in it. Deleting moves products to “Uncategorised”.</p><div id="cat-list2">${list()}</div><div class="row" style="margin-top:12px"><input class="input" id="cat-new" placeholder="New category name" style="max-width:260px"><button class="btn outline sm" id="cat-add">${I('plus')} Add</button></div>`, actions: [{ label: 'Cancel', cls: 'outline' }, { label: 'Save categories', run: (d) => { d.querySelectorAll('[data-cat-old]').forEach((i) => { const o = i.dataset.catOld, n = i.value.trim(); if (n && n !== o) prods().forEach((p) => { if (p.category === o) p.category = n; }); }); if (Array.isArray(S().categories)) S().categories = cats().slice(1); DM.toast('Categories saved'); DM.render(); } }],
+      onMount: (d) => { d.addEventListener('click', (e) => { const del = e.target.closest('[data-cat-del]'); if (del) { const c = del.dataset.catDel; prods().forEach((p) => { if (p.category === c) p.category = 'Uncategorised'; }); d.querySelector('#cat-list2').innerHTML = list(); } if (e.target.closest('#cat-add')) { const v = d.querySelector('#cat-new').value.trim(); if (!v) return; if (!cats().includes(v)) { const holder = prods().find((p) => p.category === 'Uncategorised'); if (!holder) DM.toast(`“${v}” will appear once a product uses it`, 'info'); } d.querySelector('#cat-new').value = ''; } }); } });
+  });
 
   /* ───── create ───── */
   const pform = (p = {}) => `<form id="prod-form" class="col gap16" onsubmit="return false"><div class="card pad col gap12"><h3>Basics</h3><div class="grid g2">${DM.field('Product name *', 'name', { value: p.name })}${DM.field('SKU *', 'sku', { value: p.sku, ph: 'e.g. AE-MCB-32A' })}<div class="field"><label>Category</label><input class="input" name="category" list="cat-list" value="${esc(p.category || '')}"><datalist id="cat-list">${cats().slice(1).map((c) => `<option>${esc(c)}</option>`).join('')}</datalist></div>${DM.field('Brand', 'brand', { value: p.brand })}${DM.field('Unit', 'unit', { value: p.unit || 'pc', options: ['pc', 'box', 'm', 'roll', 'kg', 'set', 'pack'] })}${DM.field('HSN', 'hsn', { value: p.hsn })}</div></div><div class="card pad col gap12"><h3>Pricing & stock</h3><div class="grid g3">${DM.field('Price (₹) *', 'price', { type: 'number', value: p.price })}${DM.field('MRP (₹)', 'mrp', { type: 'number', value: p.mrp })}${DM.field('GST %', 'tax', { type: 'number', value: p.tax ?? 18 })}${DM.field('Stock', 'stock', { type: 'number', value: p.stock ?? 0 })}${DM.field('Status', 'status', { options: ['active', 'draft'], value: p.status || 'active' })}</div></div></form>`;
