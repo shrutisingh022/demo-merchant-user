@@ -103,7 +103,12 @@
   const COLORS = ['#2563eb', '#0d9488', '#d97706', '#7c3aed', '#db2777', '#059669', '#dc2626', '#4f46e5', '#0891b2', '#ca8a04'];
   DM.color = (s) => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return COLORS[h % COLORS.length]; };
   DM.initials = (s) => String(s || '?').replace(/[^A-Za-z0-9 ]/g, '').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
-  DM.avatar = (name, cls = '') => `<span class="avatar ${cls}" style="background:${DM.color(name)}">${esc(DM.initials(name))}</span>`;
+  const ORG_RE = /\b(pvt|ltd|llp|enterprises?|traders?|works|textiles?|furnishings?|decor|stores?|mart|hub|electricals?|projects?|solutions|handlooms|designs?|industries|infra|builders|cables|agency|agencies|corp|company|house|collections?|exports?|international|mattresses|sons|bros|and|&|nx|c&c)\b|\d/i;
+  const FEM = /^(priya|simran|pooja|anita|sunita|kavita|neha|meera|sneha|divya|anjali|rekha|sheetla|sheetal|seema|geeta|radha|lakshmi|pallavi|arpita|swati|shruti|nisha|ritu|jaya|deepa|shweta|komal|payal|manisha|usha|asha|kiran|mamta|rina|sarika|tina|varsha|vidya|zoya|aisha|fatima|chinmayi|mani)/i;
+  DM.isOrg = (n) => ORG_RE.test(String(n || ''));
+  DM.photoUrl = (name) => { let h = 7; for (const c of String(name)) h = (h * 31 + c.charCodeAt(0)) >>> 0; const first = String(name).trim().split(/\s+/)[0]; const g = FEM.test(first) || (!/^(rahul|amit|vijay|ramesh|suresh|mahesh|pankaj|neil|ankit)/i.test(first) && /[ai]$/i.test(first) && !/(ji|ti|ni)$/i.test(first) ? false : false) ? 'women' : (FEM.test(first) ? 'women' : (h % 5 === 0 ? 'women' : 'men')); return `https://randomuser.me/api/portraits/${g}/${h % 90}.jpg`; };
+  // Rounded-square avatar (live uses 24px/8px-radius photos). Orgs/numbers get initials tiles. Falls back to initials if the photo fails.
+  DM.avatar = (name, cls = '', o = {}) => { const nm = String(name || '?'); const org = o.org ?? (DM.isOrg(nm) || /^\+?\d/.test(nm)); const bg = DM.color(nm); const img = org || o.noPhoto ? '' : `<img src="${DM.photoUrl(nm)}" alt="" loading="lazy" onerror="this.remove()">`; return `<span class="avatar ${cls}" style="background:${org ? bg : '#e5e5e5'};color:${org ? '#fff' : '#525252'}">${esc(DM.initials(nm))}${img}</span>`; };
   DM.badge = (t, tone = '', dot) => `<span class="badge ${tone}">${dot ? '<i class="d"></i>' : ''}${esc(t)}</span>`;
   DM.uid = (p = 'id') => p + '-' + Math.random().toString(36).slice(2, 8);
   DM.clone = (o) => JSON.parse(JSON.stringify(o));
@@ -207,7 +212,7 @@
       Object.entries(st.m || {}).forEach(([key, v]) => { (DM.S.history[key] = DM.S.history[key] || []).push(v); });
     }
     const st = U.steps[i];
-    if (st && st.route && st.route.startsWith('/inbox') && DM.path().startsWith('/inbox')) { if (DM.path() + (location.hash.includes('?') ? '?' + location.hash.split('?')[1] : '') !== st.route) DM.go(st.route); else DM.render(); } else DM.render();
+    if (st && st.route) { const cur = DM.path() + (location.hash.includes('?') ? '?' + location.hash.split('?')[1] : ''); if (cur !== st.route) DM.go(st.route); else DM.render(); } else DM.render();
   };
   DM.scnNext = () => { const U = DM.ucs[DM.uc]; if (DM.scn.index < U.steps.length - 1) DM.scnApply(DM.scn.index + 1); else DM.scnStop(); };
   DM.scnPrev = () => { if (DM.scn.index >= 0) DM.scnApply(DM.scn.index - 1); };
@@ -274,8 +279,7 @@
   <div id="app" class="panel-closed">
     <aside id="rail"></aside>
     <main id="main"><div id="topbar"></div><div id="view"></div></main>
-    <aside id="panel"></aside>
-  </div><div id="toasts"></div>`;
+  </div><div id="toasts"></div><div id="boot"><div class="m"><i></i><i></i></div></div>`;
   const MARK = `<svg viewBox="0 0 32 32" width="26" height="26"><rect width="32" height="32" rx="8" fill="#0a0a0a"/><circle cx="10.5" cy="16" r="2.3" fill="#fff"/><rect x="15" y="13.8" width="8.5" height="4.4" rx="2.2" fill="#fff"/></svg>`;
   DM.mark = (n = 26) => MARK.replace(/26/g, n);
 
@@ -288,12 +292,30 @@
       <div class="brand" data-act="merchant-menu">${MARK}<div class="grow"><div class="nm">Demo Merchant User</div><div class="sub">Admin</div></div>${I('chevD')}</div>
       <button class="searchbtn" data-act="palette">${I('search')} <span class="grow">Search…</span><kbd>⌘K</kbd></button>
       <nav id="nav">${grp(g1)}<div class="grow"></div>${grp(g2)}</nav>
-      <div class="acct" data-act="account-menu"><span class="avatar" style="background:#7c3aed">DM</span><div class="grow" style="min-width:0"><div class="sm b trunc">Demo Admin</div><div class="xs muted trunc">admin@demo.anuma.run</div></div>${I('chevU')}</div>`;
+      <div class="acct" data-act="account-menu">${DM.avatar('Rohan Mehta', '', { noPhoto: false, org: false })}<div class="grow" style="min-width:0"><div class="b trunc">Rohan Mehta</div><div class="xs muted trunc">rohan@demo.anuma.run</div></div>${I('chevU')}</div>`;
   }
   function ucSwitcher() {
-    const U = DM.ucs[DM.uc]; const i = DM.scn.index; const n = U.steps.length;
-    return `<button class="btn outline sm" data-act="uc-menu" title="Switch use case">${I(U.icon || 'zap')} <span>${esc(U.short)}</span> ${I('chevD')}</button>${i >= 0 ? `<span class="stepchip" title="Scenario progress"><button data-act="scn-prev">${I('chevL')}</button><span class="mono xs">Step ${i + 1}/${n}</span><button data-act="scn-next">${I('chevR')}</button></span>` : ''}`;
+    if (DM.ui.demoHidden) return '';
+    const U = DM.ucs[DM.uc]; const i = DM.scn.index; const n = U.steps.length; const st = U.steps[i];
+    return `<div class="demobar ${DM.scn.playing ? 'playing' : ''}">
+      <button class="btn ghost sm" style="height:24px;padding:0 6px" data-act="uc-menu" title="Switch use case">${I(U.icon || 'zap')}<span>${esc(U.short)}</span>${I('chevD')}</button>
+      <span class="sepv"></span>
+      <button class="btn ghost icon" data-act="scn-prev" ${i < 0 ? 'disabled' : ''} title="Previous step">${I('skipB')}</button>
+      <button class="btn ghost icon" data-act="scn-play" title="${DM.scn.playing ? 'Pause' : 'Play scenario'}">${I(DM.scn.playing ? 'pause' : 'play')}</button>
+      <button class="btn ghost icon" data-act="scn-next" ${i >= n - 1 ? 'disabled' : ''} title="Next step">${I('skipF')}</button>
+      <span class="lbl" data-act="steps-pop" title="All steps"><i class="play-ind"></i><span class="mono">${i < 0 ? '0' : i + 1}/${n}</span><span class="trunc">${i < 0 ? 'Play the scenario' : esc(st.title)}</span>${I('chevD')}</span>
+      <button class="btn ghost icon" data-act="scn-reset" title="Reset scenario">${I('rotate')}</button>
+      <button class="btn ghost icon" data-act="demo-hide" title="Hide demo controls">${I('x')}</button></div>`;
   }
+  DM.stepsPopover = (anchor) => {
+    document.querySelectorAll('.stepspop').forEach((e) => e.remove());
+    const U = DM.ucs[DM.uc]; const i = DM.scn.index; const r = anchor.getBoundingClientRect();
+    const d = document.createElement('div'); d.className = 'stepspop';
+    d.innerHTML = `<div class="sp-narr"><b>${esc(U.short)}</b> · ${esc(i >= 0 ? (U.steps[i].narr || U.steps[i].desc || U.steps[i].title) : U.about)}</div>${U.steps.map((s, k) => `<button class="sp-row ${k <= i ? 'done' : ''} ${k === i ? 'cur' : ''}" data-k="${k}"><span class="sp-n">${k + 1}</span><span class="grow"><b class="sm" style="display:block;font-weight:500">${esc(s.title)}</b><span class="xs muted">${esc(s.desc || '')}</span></span><span class="xs muted">${esc(s.at || '')}</span></button>`).join('')}`;
+    d.style.top = r.bottom + 6 + 'px'; d.style.left = Math.max(8, Math.min(r.left, innerWidth - 396)) + 'px'; document.body.appendChild(d);
+    d.addEventListener('click', (e) => { const b = e.target.closest('[data-k]'); if (b) { d.remove(); DM.scnStop(); DM.scnApply(+b.dataset.k); } });
+    setTimeout(() => document.addEventListener('mousedown', function f(e) { if (!e.target.closest('.stepspop')) d.remove(); document.removeEventListener('mousedown', f); }), 0);
+  };
   function renderTop(path, m) {
     const act = activeNav(path); const unread = (DM.S.notifications || []).filter((n) => n.unread).length;
     const label = (m && m.pg.crumb ? (typeof m.pg.crumb === 'function' ? m.pg.crumb(m.params) : m.pg.crumb) : null) || (act ? act.label : '');
@@ -314,38 +336,8 @@
     d.addEventListener('click', (e) => { if (e.target.closest('a')) d.remove(); });
   };
 
-  function renderPanel() {
-    const el = document.getElementById('panel'); if (!el || !DM.uc) return;
-    const U = DM.ucs[DM.uc]; const i = DM.scn.index; const st = U.steps[i];
-    const prog = Math.max(0, i + 1);
-    el.innerHTML = `<div class="inner">
-      <div class="p-head"><div class="row"><div class="b" style="font-size:14px">Demo scenarios</div><span class="badge right">${I('zap')} live mock</span></div><div class="xs muted" style="margin-top:2px">Pick a use case, then play it — the admin on the left changes as each step lands.</div></div>
-      <div class="uc-tabs">${Object.values(DM.ucs).map((u) => `<button class="uc ${u.key === DM.uc ? 'on' : ''}" data-act="uc" data-arg="${u.key}"><span class="ic">${I(u.icon)}</span><span class="grow"><span class="b sm" style="display:block">${esc(u.short)}</span><span class="xs muted" style="display:block;font-weight:400">${esc(u.tagline)}</span></span></button>`).join('')}</div>
-      <div class="p-ctrl">
-        <button class="btn sm icon outline" data-act="scn-prev" ${i < 0 ? 'disabled' : ''} title="Previous">${I('skipB')}</button>
-        <button class="btn sm" data-act="scn-play">${I(DM.scn.playing ? 'pause' : 'play')} ${DM.scn.playing ? 'Pause' : i < 0 ? 'Play scenario' : i >= U.steps.length - 1 ? 'Replay' : 'Resume'}</button>
-        <button class="btn sm icon outline" data-act="scn-next" ${i >= U.steps.length - 1 ? 'disabled' : ''} title="Next step">${I('skipF')}</button>
-        <button class="btn sm icon ghost" data-act="scn-reset" title="Reset">${I('rotate')}</button>
-        <span class="xs muted right mono">${prog} / ${U.steps.length}</span>
-      </div>
-      <div class="bar" style="border-radius:0;height:3px"><i style="width:${(prog / U.steps.length) * 100}%;border-radius:0"></i></div>
-      <div class="p-body">
-        <div class="narr"><div class="by">${st ? esc(st.actor || 'Anuma') + ' · ' + esc(st.at || '') : 'About this use case'}</div>${st ? esc(st.narr || st.desc || st.title) : esc(U.about)}</div>
-        <div class="charts">${(U.charts || []).map(chartCard).join('')}</div>
-        <div class="b sm" style="margin:4px 0 6px">Steps</div>
-        <div class="steps">${U.steps.map((s, k) => `<button class="step ${k < i ? 'done' : ''} ${k === i ? 'cur done' : ''} ${k > i ? 'future' : ''}" data-act="scn-jump" data-arg="${k}"><span class="n">${k <= i && k !== i ? I('check').replace('class="i "', 'class="i" style="width:12px;height:12px"') : k + 1}</span><span class="grow"><span class="t" style="display:block">${esc(s.title)}</span><span class="d" style="display:block">${esc(s.desc || '')}</span></span><span class="tm">${esc(s.at || '')}</span></button>`).join('')}</div>
-      </div></div>`;
-    const cur = el.querySelector('.step.cur'); if (cur && DM.scn.playing) cur.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }
-  function chartCard(c) {
-    const h = DM.S.history || {}; const vals = (h[c.key] || []).slice(); const last = vals.length ? vals[vals.length - 1] : (c.start ?? 0);
-    const f = c.fmt === 'inr' ? DM.fmt.inrc : c.fmt === 'pct' ? (v) => Math.round(v) + '%' : c.fmt === 'min' ? (v) => v + ' min' : (v) => DM.fmt.num(Math.round(v * 10) / 10);
-    const series = vals.length ? vals : [c.start ?? 0];
-    let body;
-    if (c.type === 'bars') { const items = (c.labels || []).map((l, k) => ({ l, v: series[Math.min(k, series.length - 1)] != null && k < series.length ? series[k] : 0 })); body = DM.chart.bars(items, { h: 70, fmt: f }); }
-    else body = DM.chart.spark([c.start ?? 0, ...series], { h: 44, color: c.color });
-    return `<div class="chart ${c.wide ? 'wide' : ''}"><h4>${esc(c.title)}</h4><div class="v mono">${f(last)}${c.delta && vals.length > 1 ? `<span class="xs ${vals.at(-1) >= vals[0] ? 'up' : 'down'}" style="margin-left:6px;font-weight:500">${vals.at(-1) >= vals[0] ? '▲' : '▼'}</span>` : ''}</div>${body}</div>`;
-  }
+  function renderPanel() { const p = DM.path(); if (DM.root) { renderTop(p, DM.match(p)); renderDemoHandle(); } }
+  function renderDemoHandle() { let h = document.getElementById('demohandle'); if (DM.ui.demoHidden) { if (!h) { h = document.createElement('button'); h.id = 'demohandle'; h.className = 'demohandle'; h.dataset.act = 'demo-show'; h.innerHTML = I('play') + ' Demo'; document.body.appendChild(h); } } else if (h) h.remove(); }
   DM.renderPanel = renderPanel;
 
   DM.render = () => {
@@ -361,6 +353,7 @@
     try { html = m ? m.pg.render({ params: m.params, q: DM.query(), path }) : `<div class="page"><div class="empty"><h3>Page not found</h3><p>${esc(path)}</p><p style="margin-top:12px"><a class="btn outline" href="#/dashboard">Back to dashboard</a></p></div></div>`; }
     catch (e) { console.error(e); html = `<div class="page"><div class="empty"><h3>Something broke on this screen</h3><pre class="sm">${esc(e.message)}</pre></div></div>`; }
     view.innerHTML = html;
+    if (DM._lastPath !== path) { view.classList.remove('pg-enter'); void view.offsetWidth; view.classList.add('pg-enter'); }
     if (DM._lastPath === path) view.scrollTop = sc; else view.scrollTop = 0; DM._lastPath = path;
     if (m && m.pg.after) try { m.pg.after(view, { params: m.params, q: DM.query() }); } catch (e) { console.error(e); }
     DM.afterHooks.forEach((f) => f(view));
@@ -368,6 +361,26 @@
     document.title = (m && m.pg.title ? m.pg.title + ' · ' : '') + 'Anuma · Demo Merchant User';
     renderPanel();
   };
+
+
+  /* ───────── shared motion helpers ─────────
+     [data-rid="x"]  → items that appear after the first render of a route get a yellow flash + rise (scenario steps landing)
+     [data-count="n" data-fmt="inr|num|pct"] → number counts up/down to n when it changes
+     .stagger children → enter in sequence */
+  DM._seen = {}; DM._counts = {};
+  DM.afterHooks.push((root) => {
+    const path = DM.path() + '|' + DM.uc; const prev = DM._seen[path]; const cur = new Set();
+    root.querySelectorAll('[data-rid]').forEach((e) => { cur.add(e.dataset.rid); if (prev && !prev.has(e.dataset.rid)) e.classList.add('row-new'); });
+    DM._seen[path] = cur;
+    if (!prev && DM._lastPath !== path.split('|')[0]) root.querySelectorAll('.stagger > *').forEach((e, k) => { e.style.animation = `os-enter .35s cubic-bezier(.22,.8,.24,1) ${Math.min(k, 12) * 40}ms both`; });
+    root.querySelectorAll('[data-count]').forEach((e, k) => {
+      const key = path + '#' + (e.dataset.ck || k); const to = parseFloat(e.dataset.count); const from = DM._counts[key] == null ? 0 : DM._counts[key]; DM._counts[key] = to;
+      const f = e.dataset.fmt === 'inr' ? DM.fmt.inr : e.dataset.fmt === 'inrc' ? DM.fmt.inrc : e.dataset.fmt === 'pct' ? (v) => Math.round(v) + '%' : (v) => DM.fmt.num(Math.round(v));
+      if (from === to) { e.textContent = f(to); return; }
+      const t0 = performance.now(), dur = 650; const tick = (t) => { const p = Math.min(1, (t - t0) / dur), ez = 1 - Math.pow(1 - p, 3); e.textContent = f(from + (to - from) * ez); if (p < 1) requestAnimationFrame(tick); }; requestAnimationFrame(tick);
+    });
+  });
+  DM.seenReset = () => { DM._seen = {}; DM._counts = {}; };
 
   /* ───────── overlays ───────── */
   const ov = () => document.getElementById('overlay');
@@ -387,14 +400,23 @@
   };
   DM.closeDrawer = () => { const d = document.getElementById('drawer-wrap'); if (d) d.remove(); };
   DM.toast = (msg, icon = 'check') => { const t = document.createElement('div'); t.className = 'toast'; t.innerHTML = I(icon) + esc(msg); document.getElementById('toasts').appendChild(t); setTimeout(() => t.remove(), 2800); };
-  DM.menu = (el, items) => {
+  DM.menu = (el, items, o = {}) => {
     document.querySelectorAll('.menu').forEach((m) => m.remove());
     const r = el.getBoundingClientRect(); const m = document.createElement('div'); m.className = 'menu';
-    m.innerHTML = items.map((it, k) => `<button data-mk="${k}">${it.icon ? I(it.icon) : ''}${esc(it.label)}</button>`).join('');
-    m.style.top = Math.min(r.bottom + 4, innerHeight - items.length * 34 - 16) + 'px'; m.style.left = Math.min(r.left, innerWidth - 220) + 'px';
-    m.addEventListener('click', (e) => { const b = e.target.closest('[data-mk]'); if (!b) return; m.remove(); items[+b.dataset.mk].run && items[+b.dataset.mk].run(); });
+    m.innerHTML = items.map((it, k) => it.sep ? '<div class="msep"></div>' : it.heading ? `<div class="mlabel">${esc(it.heading)}</div>` : `<button data-mk="${k}">${it.icon ? I(it.icon) : ''}<span class="grow">${esc(it.label)}</span>${it.hint ? `<span class="xs muted">${esc(it.hint)}</span>` : ''}${it.check ? I('check') : ''}</button>`).join('');
+    m.style.minWidth = Math.max(160, o.match ? r.width : 0) + 'px';
     document.body.appendChild(m);
+    const h = m.getBoundingClientRect().height, w = m.getBoundingClientRect().width;
+    const up = r.bottom + 4 + h > innerHeight - 8 && r.top - 4 - h > 8;
+    m.style.top = (up ? r.top - 4 - h : r.bottom + 4) + 'px'; m.style.left = Math.max(8, Math.min(o.right ? r.right - w : r.left, innerWidth - w - 8)) + 'px'; m.style.transformOrigin = (up ? 'bottom ' : 'top ') + (o.right ? 'right' : 'left');
+    m.addEventListener('click', (e) => { const b = e.target.closest('[data-mk]'); if (!b) return; m.remove(); items[+b.dataset.mk].run && items[+b.dataset.mk].run(); });
   };
+  // Native <select> → styled dropdown (same look as every other menu)
+  document.addEventListener('mousedown', (e) => {
+    const sel = e.target.closest && e.target.closest('select'); if (!sel || sel.multiple || sel.disabled) return;
+    e.preventDefault(); sel.focus();
+    DM.menu(sel, [...sel.options].map((o) => ({ label: o.text, check: o.selected, run: () => { sel.value = o.value; sel.dispatchEvent(new Event('input', { bubbles: true })); sel.dispatchEvent(new Event('change', { bubbles: true })); } })), { match: true });
+  });
   DM.formData = (root) => { const o = {}; root.querySelectorAll('[name]').forEach((e) => { o[e.name] = e.type === 'checkbox' ? e.checked : e.value; }); return o; };
   DM.field = (label, name, o = {}) => `<div class="field"><label>${esc(label)}</label>${o.options ? `<select class="select" name="${name}">${o.options.map((x) => `<option ${x === o.value ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select>` : o.area ? `<textarea class="textarea" name="${name}" rows="${o.rows || 3}" placeholder="${esc(o.ph || '')}">${esc(o.value || '')}</textarea>` : `<input class="input" name="${name}" type="${o.type || 'text'}" value="${esc(o.value ?? '')}" placeholder="${esc(o.ph || '')}">`}</div>`;
 
@@ -403,13 +425,16 @@
   DM.act = (n, fn) => (A[n] = fn);
   DM.input = (n, fn) => (DM.inputs[n] = fn);
   A['close-modal'] = () => DM.closeModal(); A['close-drawer'] = () => DM.closeDrawer();
-  A['toggle-panel'] = () => { DM.ui.panelHidden = !DM.ui.panelHidden; DM.render(); };
+  
   A['uc'] = (el) => DM.setUC(el.dataset.arg);
   A['scn-next'] = () => { DM.scnStop(); DM.scnNext(); }; A['scn-prev'] = () => { DM.scnStop(); DM.scnPrev(); };
   A['scn-play'] = () => (DM.scn.playing ? DM.scnStop() : DM.scnPlay()); A['scn-reset'] = () => DM.scnReset();
   A['scn-jump'] = (el) => { DM.scnStop(); DM.scnApply(+el.dataset.arg); };
   A['bell'] = () => DM.bellPopover();
-  A['uc-menu'] = (el) => DM.menu(el, Object.values(DM.ucs).map((u) => ({ label: u.short + ' · ' + u.tagline, icon: u.key === DM.uc ? 'check' : u.icon, run: () => DM.setUC(u.key) })));
+  A['steps-pop'] = (el) => DM.stepsPopover(el);
+  A['demo-hide'] = () => { DM.scnStop(); DM.ui.demoHidden = true; DM.render(); };
+  A['demo-show'] = () => { DM.ui.demoHidden = false; DM.render(); };
+  A['uc-menu'] = (el) => DM.menu(el, Object.values(DM.ucs).map((u) => ({ label: u.short + ' · ' + u.tagline, icon: u.key === DM.uc ? 'check' : u.icon, run: () => DM.setUC(u.key) })), { right: true });
   A['ask'] = () => DM.go('/ask');
   A['palette'] = () => openPalette();
   A['settings-menu'] = (el) => { DM.ui.setMenu = !DM.ui.setMenu; renderRail(DM.path()); };
@@ -452,5 +477,6 @@
     let uc = null; try { uc = localStorage.getItem(LS); } catch (e) {}
     if (!DM.ucs[uc]) uc = Object.keys(DM.ucs)[0];
     DM.uc = uc; DM.resetState(); DM.render();
+    setTimeout(() => { const b = document.getElementById('boot'); if (b) { b.classList.add('out'); setTimeout(() => b.remove(), 400); } }, 900);
   };
 })();
