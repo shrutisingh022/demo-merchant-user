@@ -28,8 +28,10 @@
   .ag-chat .comp{display:flex;gap:8px;padding:10px;border-top:1px solid var(--border)}
   .diff-add{background:var(--success-tint);color:#0b7a4e;border-radius:6px;padding:4px 8px;font-size:12.5px}
   .diff-del{background:var(--destructive-tint);color:#b42318;border-radius:6px;padding:4px 8px;font-size:12.5px;text-decoration:line-through}
-  .typing i{display:inline-block;width:5px;height:5px;border-radius:50%;background:#a3a3a3;margin:0 1px;animation:tp 1s infinite}.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
-  @keyframes tp{0%,60%,100%{opacity:.3}30%{opacity:1}}
+  .popin{animation:pop-in .38s cubic-bezier(.22,.8,.24,1) both}
+  .msg-new .diff-add,.msg-new .diff-del{animation:pop-in .4s .25s cubic-bezier(.22,.8,.24,1) both}
+  .ag-card{transition:border-color .15s,box-shadow .15s,transform .15s}.ag-card:hover{transform:translateY(-1px)}
+  .ag-card .nm{font-size:13px}
   .ag-day{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted-foreground);margin:18px 0 8px}
   .ag-log{border:1px solid var(--border);border-radius:14px;overflow:hidden}
   .ag-log .r{display:flex;gap:14px;padding:12px 16px;border-top:1px solid var(--border);cursor:pointer}.ag-log .r:first-child{border-top:0}.ag-log .r:hover{background:#fafafa}
@@ -58,14 +60,14 @@
   /* ── roster ── */
   function card(a) {
     const [lb, tn] = stTone(a.status); const c = chOf(a); const ids = chIds(a);
-    return `<div class="card ag-card fadein" data-go="/agents/${esc(a.id)}">
-      <div class="top">${mark(36)}<div class="grow" style="min-width:0"><div class="b trunc" style="font-size:14px">${esc(a.name)}</div><div class="xs muted">Updated ${esc(agoLbl(a.updatedAt))}</div></div>${DM.status(lb, tn)}<button class="btn ghost icon sm" data-act="ag-menu" data-arg="${esc(a.id)}">${I('more')}</button></div>
+    return `<div class="card ag-card" data-rid="${esc(a.id)}" data-go="/agents/${esc(a.id)}">
+      <div class="top">${mark(36)}<div class="grow" style="min-width:0"><div class="b trunc nm">${esc(a.name)}</div><div class="xs muted">Updated ${esc(agoLbl(a.updatedAt))}</div></div>${DM.status(lb, tn)}<button class="btn ghost icon sm" data-act="ag-menu" data-arg="${esc(a.id)}">${I('more')}</button></div>
       <div class="foot">${c ? `${chTile(c)}<span class="trunc">Lives in <b style="color:var(--foreground);font-weight:500">${esc(c.name || chLabel(c))}</b>${ids.length > 1 ? ` and ${ids.length - 1} more` : ''}</span>` : 'Not on a channel yet'}</div></div>`;
   }
   DM.page('/agents', { title: 'Agents', render() {
     const list = agents();
-    return `<div class="page">${DM.header('Agents', 'Agents answer your customers on a channel and follow the shared rulebook.', DM.btn('Create', 'ag-new', { icon: 'plus' }))}
-      <div class="ag-grid2">${list.map(card).join('')}<div class="card ag-card create" data-act="ag-new">${I('plus')}<span>Create</span></div></div></div>`;
+    return `<div class="page narrow">${DM.header('Agents', 'Agents answer your customers on a channel and follow the shared rulebook.', DM.btn('Create', 'ag-new', { icon: 'plus' }))}
+      <div class="ag-grid2 stagger">${list.map(card).join('')}<div class="card ag-card create" data-act="ag-new">${I('plus')}<span>Create</span></div></div></div>`;
   } });
 
   function agentForm(a) {
@@ -90,7 +92,7 @@
   const TABS = [['overview', 'Overview'], ['training', 'Training'], ['test', 'Test mode'], ['activity', 'Activity log']];
   function shell(a, tab, body) {
     const [lb, tn] = stTone(a.status);
-    return `<div class="page" style="max-width:1000px">
+    return `<div class="page narrow">
       <a class="ag-back" href="#/agents">${I('arrowL')} Back to agents</a>
       <div class="row" style="align-items:center;margin-bottom:14px;gap:12px">${mark(44)}<div class="grow" style="min-width:0"><div class="row" style="gap:8px"><h1 style="font-size:20px;font-weight:600">${esc(a.name)}</h1>${DM.status(lb, tn)}</div><div class="row gap4 sm muted" style="margin-top:3px">Lives in ${chPill(a) || '<span>no channel yet</span>'}</div></div>
         <a class="btn outline" href="#/agents/${esc(a.id)}/test">${I('wand')} Test mode</a><button class="btn ghost icon" data-act="ag-menu" data-arg="${esc(a.id)}">${I('more')}</button></div>
@@ -101,7 +103,7 @@
   const renderTab = (tab, a) => (tab === 'training' ? training(a) : tab === 'test' ? testMode(a) : tab === 'activity' ? activity(a) : overview(a));
   DM.page('/agents/:id', { title: 'Agent', crumb: 'Agents', render({ params }) { const a = DM.by(agents(), params.id); return a ? shell(a, 'overview', overview(a)) : notFound(); }, after: afterTab });
   DM.page('/agents/:id/:tab', { title: 'Agent', crumb: 'Agents', render({ params }) { const a = DM.by(agents(), params.id); if (!a) return notFound(); const t = TABS.some(([k]) => k === params.tab) ? params.tab : 'overview'; return shell(a, t, renderTab(t, a)); }, after: afterTab });
-  function afterTab(view) { const m = view.querySelector('.msgs'); if (m) m.scrollTop = m.scrollHeight; }
+  function afterTab(view) { const m = view.querySelector('.msgs'); if (m) { m.scrollTop = m.scrollHeight; m.scrollTo && m.scrollTo({ top: m.scrollHeight, behavior: 'smooth' }); } Object.values(U().train).concat(Object.values(U().chat)).forEach((t) => (t.msgs || []).forEach((x) => { delete x.fresh; })); agents().forEach((a) => { (a.learned || []).forEach((x) => { delete x.fresh; }); (a.training || []).forEach((x) => { delete x.fresh; }); }); }
 
   /* ── overview ── */
   const SECS = [['rule', 'What it does', 'The behaviours this agent follows day to day.'], ['guardrail', 'What it never does', 'Hard limits it will not cross.'], ['helper', 'Helpers', 'Shortcuts and lookups it can use.']];
@@ -134,7 +136,7 @@
   DM.input('ag-hb', (v) => { policy().handBack = v; DM.toast('Hand-back rule updated'); });
   DM.act('ag-save-script', () => DM.toast('Script saved'));
   DM.act('ag-notify', (el) => { const p = policy(); const id = el.dataset.arg; p.notify = p.notify.includes(id) ? p.notify.filter((x) => x !== id) : p.notify.concat(id); DM.render(); });
-  DM.act('ag-src-add', (el) => DM.modal({ title: 'Add knowledge source', body: `<div class="col gap12">${DM.field('Type', 'type', { options: ['link', 'document', 'chat'] })}${DM.field('Title or URL', 'title', { ph: 'Price list Oct 2026.pdf' })}</div>`, actions: [{ label: 'Cancel', cls: 'outline' }, { label: 'Add', run: (m) => { const f = DM.formData(m); if (!f.title.trim()) return false; const a = DM.by(agents(), el.dataset.arg); (a.sources = a.sources || []).unshift({ id: DM.uid('src'), type: f.type, title: f.title, state: 'indexed', addedBy: 'You', addedAt: nowIso(), usedIn: 0 }); DM.toast('Source indexed'); DM.render(); } }] }));
+  DM.act('ag-src-add', (el) => DM.modal({ title: 'Add knowledge source', body: `<div class="col gap12">${DM.field('Type', 'type', { options: ['link', 'document', 'chat'] })}${DM.field('Title or URL', 'title', { ph: 'Price list Oct 2026.pdf' })}</div>`, actions: [{ label: 'Cancel', cls: 'outline' }, { label: 'Add', run: (m) => { const f = DM.formData(m); if (!f.title.trim()) return false; const a = DM.by(agents(), el.dataset.arg); (a.sources = a.sources || []).unshift({ id: DM.uid('src'), type: f.type, title: f.title, state: 'indexed', addedBy: 'Rohan Mehta', addedAt: nowIso(), usedIn: 0 }); DM.toast('Source indexed'); DM.render(); } }] }));
   function ruleModal(aid, rid, kind) {
     const a = DM.by(agents(), aid); const r = rid ? DM.by(a.rules, rid) : null;
     DM.modal({ title: r ? 'Edit ' + r.kind : 'Add ' + kind, body: DM.field('Text', 'text', { value: r?.text || '', area: true, rows: 4, ph: 'Describe the rule in plain language' }), actions: [{ label: 'Cancel', cls: 'outline' }, { label: 'Save', run: (m) => { const t = DM.formData(m).text.trim(); if (!t) return false; if (r) { if (r.scope === 'inherited' && r.text !== t) { r.original = r.original || r.text; r.overridden = true; } r.text = t; } else (a.rules = a.rules || []).push({ id: DM.uid('r'), kind, scope: 'agent', text: t }); DM.toast('Saved'); DM.render(); } }] });
@@ -148,18 +150,18 @@
   function training(a) {
     const t = tchat(a);
     return `<div class="ag-layout"><div class="card ag-chat"><div class="card-h"><h3 class="grow">Train ${esc(a.name)}</h3><span class="xs muted">Changes apply to the agent's guidelines</span></div>
-      <div class="msgs chatbg">${t.msgs.map((m) => `<div class="bub ${m.from === 'you' ? 'out' : ''}">${esc(m.text)}${m.diff ? `<div class="col" style="margin-top:8px;gap:4px">${(m.diff.added || []).map((x) => `<div class="diff-add">+ ${esc(x)}</div>`).join('')}${(m.diff.removed || []).map((x) => `<div class="diff-del">− ${esc(x)}</div>`).join('')}</div>` : ''}<span class="tm">${esc(m.at)}</span></div>`).join('')}${t.busy ? '<div class="bub typing"><i></i><i></i><i></i></div>' : ''}</div>
+      <div class="msgs chatbg">${t.msgs.map((m) => `<div class="bub ${m.from === 'you' ? 'out' : ''} ${m.fresh ? 'msg-new' : ''}">${esc(m.text)}${m.diff ? `<div class="col" style="margin-top:8px;gap:4px">${(m.diff.added || []).map((x) => `<div class="diff-add">+ ${esc(x)}</div>`).join('')}${(m.diff.removed || []).map((x) => `<div class="diff-del">− ${esc(x)}</div>`).join('')}</div>` : ''}<span class="tm">${esc(m.at)}</span></div>`).join('')}${t.busy ? '<div class="typing"><i></i><i></i><i></i></div>' : ''}</div>
       <div class="comp"><input class="input" data-input="ag-train" data-id="${esc(a.id)}" placeholder="Teach it something…" value="${esc(t.draft)}" onkeydown="if(event.key==='Enter'){DM.acts['ag-train-send'](this)}"><button class="btn" data-act="ag-train-send" data-arg="${esc(a.id)}">${I('send')} Send</button></div></div>
       <div class="col" style="gap:12px">
-        <div class="card"><div class="card-h"><h3 class="grow">Guideline changes</h3><span class="badge">${(a.training || []).length}</span></div>${(a.training || []).length ? (a.training || []).slice().reverse().map((s) => `<div style="padding:12px 16px;border-bottom:1px solid var(--border)"><div class="row sm"><b>${esc(s.by || 'You')}</b><span class="muted xs right">${esc(fmt.dt(s.at))}</span></div><div class="sm muted" style="margin:3px 0 6px">“${esc(s.prompt)}”</div>${(s.added || []).map((x) => `<div class="diff-add" style="margin-bottom:3px">+ ${esc(x)}</div>`).join('')}${(s.removed || []).map((x) => `<div class="diff-del" style="margin-bottom:3px">− ${esc(x)}</div>`).join('')}</div>`).join('') : '<div class="empty sm" style="padding:20px">No training sessions yet.</div>'}</div>
-        <div class="card"><div class="card-h"><h3 class="grow">Learned</h3></div>${(a.learned || []).length ? (a.learned || []).map((l) => `<div class="row sm" style="padding:10px 16px;border-bottom:1px solid var(--border);align-items:flex-start">${I('sparkle')}<span class="grow">${esc(l.text)}</span><button class="btn ghost icon sm" data-act="ag-learn-del" data-arg="${esc(a.id)}|${esc(l.id)}">${I('x')}</button></div>`).join('') : '<div class="empty sm" style="padding:20px">Nothing learned yet.</div>'}</div>
+        <div class="card"><div class="card-h"><h3 class="grow">Guideline changes</h3><span class="badge">${(a.training || []).length}</span></div>${(a.training || []).length ? (a.training || []).slice().reverse().map((s) => `<div style="padding:12px 16px;border-bottom:1px solid var(--border)"><div class="row sm ${s.fresh ? 'popin' : ''}">${DM.avatar(!s.by || s.by === 'You' ? 'Rohan Mehta' : s.by, 'sm')}<b>${esc(!s.by || s.by === 'You' ? 'Rohan Mehta' : s.by)}</b><span class="muted xs right">${esc(fmt.dt(s.at))}</span></div><div class="sm muted" style="margin:3px 0 6px">“${esc(s.prompt)}”</div>${(s.added || []).map((x) => `<div class="diff-add" style="margin-bottom:3px">+ ${esc(x)}</div>`).join('')}${(s.removed || []).map((x) => `<div class="diff-del" style="margin-bottom:3px">− ${esc(x)}</div>`).join('')}</div>`).join('') : '<div class="empty sm" style="padding:20px">No training sessions yet.</div>'}</div>
+        <div class="card"><div class="card-h"><h3 class="grow">Learned</h3></div>${(a.learned || []).length ? (a.learned || []).map((l) => `<div class="row sm ${l.fresh ? 'popin' : ''}" style="padding:10px 16px;border-bottom:1px solid var(--border);align-items:flex-start">${I('sparkle')}<span class="grow">${esc(l.text)}</span><button class="btn ghost icon sm" data-act="ag-learn-del" data-arg="${esc(a.id)}|${esc(l.id)}">${I('x')}</button></div>`).join('') : '<div class="empty sm" style="padding:20px">Nothing learned yet.</div>'}</div>
         <div class="card"><div class="card-h"><h3 class="grow">Gaps</h3><span class="xs muted">Questions it couldn't answer</span></div>${(a.gaps || []).length ? (a.gaps || []).map((g) => `<div class="row sm" style="padding:10px 16px;border-bottom:1px solid var(--border)"><span class="grow">${esc(g.text)}</span>${DM.badge(g.count + '×', 'amber')}<button class="btn outline sm" data-act="ag-gap" data-arg="${esc(a.id)}|${esc(g.id)}">Teach</button></div>`).join('') : '<div class="empty sm" style="padding:20px">No gaps — nice.</div>'}</div>
       </div></div>`;
   }
   DM.input('ag-train', (v, el) => { tchat(DM.by(agents(), el.dataset.id)).draft = v; });
   DM.act('ag-train-send', (el) => {
     const aid = el.dataset.arg || el.dataset.id; const a = DM.by(agents(), aid); const t = tchat(a); const text = (t.draft || '').trim(); if (!text || t.busy) return;
-    t.msgs.push({ from: 'you', text, at: nowLbl() }); t.draft = ''; t.busy = true; DM.render();
+    t.msgs.push({ from: 'you', text, at: nowLbl(), fresh: true }); t.draft = ''; t.busy = true; DM.render();
     setTimeout(() => {
       const added = [], removed = []; const low = text.toLowerCase();
       const rule = /^(always|never|don't|do not|please)/i.test(text) ? text.replace(/^please\s+/i, '') : 'When relevant: ' + text;
@@ -168,11 +170,11 @@
       (a.rules = a.rules || []).push({ id: DM.uid('r'), kind: guard ? 'guardrail' : 'rule', scope: 'agent', text: clean }); added.push(clean);
       const dup = (a.rules || []).find((r) => r.scope === 'agent' && r.text !== clean && low.split(' ').filter((w) => w.length > 5).some((w) => r.text.toLowerCase().includes(w)) && /instead|no longer|stop/.test(low));
       if (dup) { removed.push(dup.text); a.rules = a.rules.filter((r) => r !== dup); }
-      (a.learned = a.learned || []).unshift({ id: DM.uid('lf'), text: clean, at: nowIso() });
-      (a.training = a.training || []).push({ id: DM.uid('ts'), at: nowIso(), by: 'You', prompt: text, added, removed });
-      t.busy = false; t.msgs.push({ from: 'anuma', text: 'Got it — I\'ve updated my guidelines.', at: nowLbl(), diff: { added, removed } }); DM.toast('Guidelines updated', 'sparkle');
+      (a.learned = a.learned || []).unshift({ id: DM.uid('lf'), text: clean, at: nowIso(), fresh: true });
+      (a.training = a.training || []).push({ id: DM.uid('ts'), at: nowIso(), by: 'Rohan Mehta', prompt: text, added, removed, fresh: true });
+      t.busy = false; t.msgs.push({ from: 'anuma', text: 'Got it — I\'ve updated my guidelines.', at: nowLbl(), diff: { added, removed }, fresh: true }); DM.toast('Guidelines updated', 'sparkle');
       if (DM.path().indexOf('/agents/' + aid + '/training') === 0) DM.render();
-    }, 900);
+    }, 1300);
   });
   DM.act('ag-learn-del', (el) => { const [aid, lid] = el.dataset.arg.split('|'); const a = DM.by(agents(), aid); a.learned = a.learned.filter((l) => l.id !== lid); DM.render(); });
   DM.act('ag-gap', (el) => { const [aid, gid] = el.dataset.arg.split('|'); const a = DM.by(agents(), aid); const g = DM.by(a.gaps, gid); tchat(a).draft = 'When asked "' + g.text + '", answer: '; a.gaps = a.gaps.filter((x) => x.id !== gid); DM.toast('Added to the train chat'); DM.render(); setTimeout(() => { const i = document.querySelector('[data-input="ag-train"]'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 0); });
@@ -197,15 +199,15 @@
   function testMode(a) {
     const t = tm(a);
     return `<div class="ag-layout"><div class="card ag-chat"><div class="card-h"><h3 class="grow">Test chat</h3>${DM.badge('Sandbox · nothing is sent', 'amber')}<button class="btn ghost sm" data-act="ag-test-reset" data-arg="${esc(a.id)}">${I('rotate')} Reset</button></div>
-      <div class="msgs chatbg">${t.msgs.map((m) => `<div class="bub ${m.from === 'you' ? 'out' : ''} ${m.from === 'sys' ? 'sys' : ''}">${esc(m.text)}<span class="tm">${esc(m.at)}</span></div>`).join('')}${t.busy ? '<div class="bub typing"><i></i><i></i><i></i></div>' : ''}</div>
+      <div class="msgs chatbg">${t.msgs.map((m) => `<div class="bub ${m.from === 'you' ? 'out' : ''} ${m.from === 'sys' ? 'sys' : ''} ${m.fresh ? 'msg-new' : ''}">${esc(m.text)}<span class="tm">${esc(m.at)}</span></div>`).join('')}${t.busy ? '<div class="typing"><i></i><i></i><i></i></div>' : ''}</div>
       <div class="comp"><input class="input" data-input="ag-test" data-id="${esc(a.id)}" placeholder="Message as a customer…" value="${esc(t.draft)}" onkeydown="if(event.key==='Enter'){DM.acts['ag-test-send'](this)}"><button class="btn" data-act="ag-test-send" data-arg="${esc(a.id)}">${I('send')}</button></div></div>
       <div class="col" style="gap:12px"><div class="card pad"><h3>Used for last reply</h3><div class="col" style="margin-top:8px;gap:6px">${t.used.length ? t.used.map((u) => `<div class="row sm">${I('check')}<span>${esc(u)}</span></div>`).join('') : '<div class="sm muted">Send a message to see which rules, sources and confidence it used.</div>'}</div></div>
         <div class="card pad"><h3>Try asking</h3><div class="col" style="margin-top:8px;gap:6px">${['What is the price of ' + ((DM.S.products || [])[0]?.name || 'your top product') + '?', 'Do you have ' + ((DM.S.products || [])[1]?.name || 'it') + ' in stock?', 'I need 20 pieces, send ASAP', 'Where is my order?'].map((q) => `<button class="btn outline sm" style="justify-content:flex-start;white-space:normal;height:auto;padding:6px 10px;text-align:left" data-act="ag-test-ask" data-arg="${esc(a.id)}|${esc(q)}">${esc(q)}</button>`).join('')}</div></div></div></div>`;
   }
   function sendTest(aid, text) {
     const a = DM.by(agents(), aid); const t = tm(a); text = (text || '').trim(); if (!text || t.busy) return;
-    t.msgs.push({ from: 'you', text, at: nowLbl() }); t.draft = ''; t.busy = true; DM.render();
-    setTimeout(() => { const r = reply(a, text); t.busy = false; t.used = r.used; t.msgs.push({ from: 'anuma', text: r.text, at: nowLbl() }); if (r.escalate) t.msgs.push({ from: 'sys', text: 'Escalated to a human · confidence below floor', at: nowLbl() }); if (DM.path().indexOf('/agents/' + aid + '/test') === 0) DM.render(); }, 800);
+    t.msgs.push({ from: 'you', text, at: nowLbl(), fresh: true }); t.draft = ''; t.busy = true; DM.render();
+    setTimeout(() => { const r = reply(a, text); t.busy = false; t.used = r.used; t.msgs.push({ from: 'anuma', text: r.text, at: nowLbl(), fresh: true }); if (r.escalate) t.msgs.push({ from: 'sys', text: 'Escalated to a human · confidence below floor', at: nowLbl(), fresh: true }); if (DM.path().indexOf('/agents/' + aid + '/test') === 0) DM.render(); }, 1100);
   }
   DM.input('ag-test', (v, el) => { tm(DM.by(agents(), el.dataset.id)).draft = v; });
   DM.act('ag-test-send', (el) => { const aid = el.dataset.arg || el.dataset.id; sendTest(aid, tm(DM.by(agents(), aid)).draft); });

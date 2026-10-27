@@ -66,4 +66,18 @@
       t.messages.push(MSG('xk-' + t.id, 'system', 'comment', i ? `Credit limit review pending with accounts — hold dispatch until they confirm.` : `Customer is price-sensitive on this one. Keep the quote within the agreed band and loop in ${owner.name} before sharing a revised rate.`, at, { actor: (D.by ? (users.find((u) => u.id === t.owner) || human).name : human.name) }));
     });
   });
+  /* Round 3 — assign cases so the "All numbers" list shows people, not just the Anuma mark. Deterministic per thread id.
+     Closed cases keep the person who closed them; a third of the open Anuma cases are assigned (non-escalated). */
+  const hash = (x) => { let h = 7; for (const c of String(x)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
+  Object.keys(D.seed || {}).forEach((uc) => {
+    const S = D.seed[uc]; if (!S || !S.threads) return;
+    const staff = (S.users || []).filter((u) => /ASM|Sales/.test(u.role) && u.status !== 'invited');
+    if (!staff.length) return;
+    S.threads.forEach((t, i) => {
+      if (t.owner !== 'anuma') return;
+      const u = staff[hash(t.id) % staff.length];
+      if (t.status === 'closed') { t.owner = u.id; t.escalated = false; }
+      else if (hash(t.id + 'a') % 3 === 0 && !/^x-unk/.test(t.id)) { t.owner = u.id; t.escalated = false; }
+    });
+  });
 })();

@@ -6,31 +6,29 @@
   const D = window.DM, I = D.icon, esc = D.esc;
   const st = document.createElement('style'); st.dataset.for = 'inbox';
   st.textContent = `
-  .ib{display:grid;grid-template-columns:246px minmax(0,1fr) 262px;height:100%;min-height:0;position:relative}
-  .ib.nor{grid-template-columns:246px minmax(0,1fr)}
-  #app:not(.panel-closed) .ib{grid-template-columns:232px minmax(0,1fr) 262px}#app:not(.panel-closed) .ib.nor{grid-template-columns:232px minmax(0,1fr)}
+  .ib{display:grid;grid-template-columns:289px minmax(0,1fr) 262px;height:100%;min-height:0;position:relative}
+  .ib.nor,.ib.over{grid-template-columns:289px minmax(0,1fr)}
   .ib .col-l,.ib .col-m{display:flex;flex-direction:column;min-height:0;min-width:0}.ib .col-m{position:relative}
-  @media(max-width:1500px){#app:not(.panel-closed) .ib-head .lbl{display:none}#app:not(.panel-closed) .ib-head{padding:8px 10px}.ib-head .btn{padding:0 8px}}
-  #app:not(.panel-closed) .comp [data-act=ib-quick]{display:none}
+  @media(max-width:1560px){.ib-head .lbl{display:none}}
   .ib .col-l{border-right:1px solid var(--border);background:#fff}
   .ib .col-p{border-left:1px solid var(--border);overflow:auto;background:#fafafa;padding:10px;display:flex;flex-direction:column;gap:10px}
   .ib.over .col-p{position:absolute;right:0;top:0;bottom:0;width:290px;z-index:6;box-shadow:-10px 0 30px rgba(0,0,0,.14)}
-  .ib-lh{padding:12px 12px 8px}
-  .ib-chbtn{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;padding:2px 4px;margin:0 -4px;border-radius:8px}.ib-chbtn:hover{background:var(--muted)}
+  .ib-lh{padding:14px 14px 10px}
+  .ib-chbtn{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;padding:3px 6px;margin:0 -6px;border-radius:8px;transition:background-color .15s}.ib-chbtn:hover{background:var(--muted)}
   .waic{width:18px;height:18px;border-radius:50%;background:#25d366;color:#fff;display:inline-grid;place-items:center;flex:none}.waic svg.i{width:11px;height:11px;stroke-width:2.4}
-  .ib-tabs{display:flex;gap:3px;padding:2px 12px 10px;border-bottom:1px solid var(--border)}
+  .ib-tabs{display:flex;gap:3px;padding:2px 14px 12px;border-bottom:1px solid var(--border)}.ib-tabs .pill{height:25px}
   .ib-tabs .pill{flex:none;padding:4px 8px}.ib-tabs .pills{width:100%;justify-content:space-between}.ib-tabs .pill{flex:1;justify-content:center}
   .ib-list{flex:1;overflow:auto;min-height:0}
   .ib-foot{padding:9px 14px;border-top:1px solid var(--border);font-size:11.5px;color:var(--muted-foreground)}
-  .crow{display:block;padding:10px 12px 10px 14px;border-bottom:1px solid var(--border);cursor:pointer;position:relative;border-left:2px solid transparent}
+  .crow{display:flex;flex-direction:column;gap:6px;min-height:97px;padding:10px 14px 8px;border-bottom:1px solid var(--border);cursor:pointer;position:relative;border-left:2px solid transparent;transition:background-color .15s}.crow .cname{font-size:12px;font-weight:600;line-height:16px}.crow .cpre{margin-top:0}.crow .mark22{width:24px;height:24px}.crow .avatar{box-shadow:0 0 0 2px #fff}
   .crow:hover{background:var(--hover-cream)}.crow.on{background:#f4f4f5;border-left-color:#0a0a0a}.crow.esc{background:#fffbe6}.crow.esc.on{background:#fcf3c8}
-  .ctag{display:inline-flex;align-items:center;gap:5px;font:11px ui-monospace,SFMono-Regular,Menlo,monospace;background:#f1f1f1;color:#404040;border-radius:5px;padding:0 6px;height:18px}
+  .ctag{display:inline-flex;align-items:center;gap:5px;font:500 10px ui-monospace,SFMono-Regular,Menlo,monospace;background:#f1f1f1;color:#404040;border-radius:5px;padding:0 6px;height:18px}
   .ctag i{width:6px;height:6px;border-radius:50%;background:#a3a3a3}.ctag.open{background:#e9f8ef;color:#0b7a4e}.ctag.open i{background:var(--success)}.ctag.esc{background:#fdf0d2;color:#9a6208}.ctag.esc i{background:var(--warning)}
   .sla{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:#c2410c}.sla svg.i{width:11px;height:11px}
   .cpre{display:flex;align-items:center;gap:5px;color:var(--muted-foreground);font-size:12px;margin-top:3px;min-width:0}.cpre span{min-width:0}
-  .amark{position:absolute;right:10px;bottom:9px}
-  .ib-head{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);background:#fff;min-height:58px}
-  .ib-head h2{font-size:15px;font-weight:600;display:flex;gap:6px;align-items:baseline;min-width:0}
+  .amark{position:absolute;right:12px;bottom:10px;display:flex}
+  .ib-head{display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--border);background:#fff;min-height:68px;height:68px}
+  .ib-head h2{font-size:16px;font-weight:600;display:flex;gap:6px;align-items:baseline;min-width:0}
   .ib-stream{flex:1;overflow:auto;padding:14px 22px 110px;display:flex;flex-direction:column;gap:7px;min-height:0;position:relative}
   .ib-stream>*{flex-shrink:0}
   .mrow{display:flex;gap:8px;align-items:flex-end}.mrow.out{justify-content:flex-end}
@@ -43,7 +41,7 @@
   .lbtns{flex:1 1 100%;margin:6px -10px -7px;border-top:1px solid rgba(0,0,0,.1);display:flex;flex-direction:column}
   .lbtns button{padding:8px;text-align:center;font-size:13px;font-weight:500;color:#0b6e99;border-top:1px solid rgba(0,0,0,.08)}.lbtns button:first-child{border-top:0}.lbtns button:hover:not([disabled]){background:rgba(255,255,255,.55)}.lbtns button[disabled]{color:#8b9aa3;cursor:default}
   .react{margin:-4px 0 0 6px;font-size:13px;background:#fff;border-radius:999px;width:22px;height:22px;display:grid;place-items:center;box-shadow:0 1px 2px rgba(0,0,0,.15);position:relative;top:-6px}
-  .sysline{align-self:center;font-size:11px;color:#6b7280;text-align:center;padding:1px 8px;max-width:80%}.sysline b{color:#262626;font-weight:600}
+  .sysline{align-self:center;font-size:10.5px;color:#6b7280;text-align:center;padding:1px 8px;max-width:80%}.sysline b{color:#262626;font-weight:600}
   .sysline.amber b{color:#9a6208}.sysline.blue b{color:#1e40af}.sysline.green b{color:#0b7a4e}
   .cmt{align-self:center;width:min(570px,88%);background:#fffbe3;border:1px dashed #d9c767;border-radius:12px;padding:9px 13px;font-size:13px;box-shadow:0 1px 1px rgba(0,0,0,.04)}
   .cmt .ch{display:flex;align-items:center;gap:6px;font-size:12px;color:#525252;padding-bottom:6px;margin-bottom:6px;border-bottom:1px dashed #e6d98a}.cmt .ch b{color:#171717}.cmt .ch .ts{margin-left:auto;font-size:11px;color:#8a8a8a}
@@ -60,7 +58,7 @@
   .ibc .b2{padding:10px 12px}
   .ibc .f{display:flex;gap:8px;align-items:center;padding:9px 12px;border-top:1px solid var(--border)}
   .rdgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px 14px;font-size:12.5px}.rdgrid span{color:var(--muted-foreground);display:block;font-size:11px}
-  .float{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;width:min(560px,calc(100% - 40px));z-index:3}
+  .float{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;width:min(640px,calc(100% - 40px));z-index:3}
   .winc{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--border);border-radius:14px;padding:10px 12px;box-shadow:0 6px 22px rgba(0,0,0,.12)}
   .comp{background:#fff;border:1px solid var(--border);border-radius:14px;padding:8px 10px;box-shadow:0 6px 22px rgba(0,0,0,.12)}
   .comp textarea{width:100%;border:0;resize:none;font-size:13px;outline:none;min-height:36px;max-height:110px;padding:4px 2px}
@@ -72,8 +70,15 @@
   .ev .g{width:22px;height:22px;border-radius:50%;border:1px solid var(--border);display:grid;place-items:center;flex:none;background:#fff}.ev .g svg.i{width:12px;height:12px;color:#6b7280}
   .dl{display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px dashed var(--border);font-size:12.5px}.dl:last-child{border-bottom:0}
   .stp{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:6px;overflow:hidden}.stp button{width:20px;height:22px;font-size:13px}.stp button:hover{background:var(--muted)}.stp span{min-width:24px;text-align:center;font-size:12px}
-  .typing{align-self:flex-start;background:#fff;border-radius:10px;padding:8px 12px;display:flex;gap:3px}.typing i{width:6px;height:6px;border-radius:50%;background:#a3a3a3;animation:tp 1s infinite}.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}@keyframes tp{50%{opacity:.25;transform:translateY(-2px)}}
+  .stream-tp{display:flex;gap:8px;align-items:flex-end}.stream-tp.out{justify-content:flex-end}
   .dim{opacity:.3}mark{background:#fde68a;border-radius:2px}
+  .xf{animation:os-fade .3s both}.pop{animation:badge-pop .32s ease both}
+  .lbtns button{transition:background-color .12s,transform .1s}.lbtns button:active:not([disabled]){transform:scale(.97);background:rgba(255,255,255,.85)}
+  .wave i{transition:background-color .12s}.wave.playing i{animation:wv var(--dur,10s) linear forwards;animation-delay:calc(var(--i) * var(--dur,10s) / 30)}@keyframes wv{to{background:#0b7a4e}}
+  .tile{cursor:zoom-in;transition:transform .15s}.tile:hover{transform:scale(1.01)}
+  .skrow{min-height:97px;padding:12px 14px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:9px}
+  .sk{height:10px;border-radius:5px}
+  .rd-card{width:min(520px,86%);border:1px solid var(--border);border-radius:12px;background:#fff;padding:12px 14px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
   .cqbar{display:flex;gap:8px;align-items:center;padding:6px 14px;border-bottom:1px solid var(--border);background:#fff}
   `;
   document.head.appendChild(st);
@@ -84,6 +89,7 @@
   const now = () => NOW0 + (ui().tick || 0) * 60000;
   const CH = { whatsapp: ['chat', '#25d366', 'WhatsApp'], email: ['mail', '#2563eb', 'Email'], indiamart: ['tag', '#e0642b', 'IndiaMART'], web: ['globe', '#7c3aed', 'Web form'], telegram: ['send', '#0ea5e9', 'Telegram'] };
   const TICKS = (rd) => `<svg class="tick ${rd ? 'rd' : ''}" viewBox="0 0 24 24"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>`;
+  const TICK1 = `<svg class="tick" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>`;
   const WA = `<span class="waic">${I('chat')}</span>`;
   const MARK = (g) => `<span class="mark22 ${g ? 'green' : ''}"><i></i></span>`;
   const party = (id) => D.by(S().parties, id) || { id, name: id || 'Unknown' };
@@ -119,7 +125,7 @@
   const caseNo = (t) => tags()[t.id] || String(t.caseNo || t.id);
   const lastInbound = (t) => { const m = [...(t.messages || [])].reverse().find((x) => x.from === 'customer' && hasClock(x.at)); return m ? ms(m.at) : null; };
   const windowClosed = (t) => { if (t.channel !== 'whatsapp') return false; const l = lastInbound(t); return l == null || now() - l > DAY; };
-  const escalated = (t) => t.status !== 'closed' && (t.owner !== 'anuma' || t.status === 'hold');
+  const escalated = (t) => t.status === 'hold' || (t.status !== 'closed' && t.owner !== 'anuma' && t.escalated !== false);
   const slaOver = (t) => { if (t.status === 'closed' || t.lastDirection !== 'in') return null; const l = lastInbound(t); if (l == null) return null; const over = now() - l - 15 * 60000; if (over <= 0) return null; const mins = Math.floor(over / 60000); return Math.floor(mins / 60) + ':' + String(mins % 60).padStart(2, '0'); };
 
   /* ── case list ── */
@@ -135,18 +141,18 @@
     const p = party(t.partyId), cn = contact(t.contactId), over = slaOver(t), esc_ = escalated(t), open = t.status === 'open' && !esc_;
     const second = t.unknownPhone ? '' : (cn && cn.name && cn.name !== p.name ? `<span class="muted" style="font-weight:400">, ${esc(cn.name)}</span>` : '');
     const closedMsg = t.lastDirection === 'out';
-    return `<div class="crow ${c && c.id === t.id ? 'on' : ''} ${esc_ ? 'esc' : ''}" data-act="ib-open" data-arg="${t.id}">
-      <div class="row gap4"><span class="ctag ${esc_ ? 'esc' : open ? 'open' : ''}"><i></i>${esc(caseNo(t))}</span>${over ? `<span class="sla">${I('clock')} ${over} over</span>` : ''}${t.unread ? `<span class="unread" style="height:16px;min-width:16px;font-size:10px">${t.unread}</span>` : ''}<span class="grow"></span><span class="xs muted">${esc(listDate(t.lastAt))}</span></div>
-      <div class="trunc" style="margin-top:5px;font-size:13px"><b>${esc(nameOf(t))}</b>${second}</div>
+    return `<div class="crow ${c && c.id === t.id ? 'on' : ''} ${esc_ ? 'esc' : ''}" data-act="ib-open" data-arg="${t.id}" data-sig="${esc([t.lastAt, t.unread, t.status, t.owner, t.preview].join('|'))}">
+      <div class="row gap4"><span class="ctag ${esc_ ? 'esc' : open ? 'open' : ''}"><i></i>${esc(caseNo(t))}</span>${over ? `<span class="sla">${I('clock')} ${over} over</span>` : ''}${t.unread ? `<span class="unread" data-u="${t.unread}" style="height:16px;min-width:16px;font-size:10px">${t.unread}</span>` : ''}<span class="grow"></span><span class="xs muted">${esc(listDate(t.lastAt))}</span></div>
+      <div class="trunc cname">${esc(nameOf(t))}${second}</div>
       <div class="cpre">${closedMsg ? TICKS(t.status === 'closed') : ''}<span class="trunc">${esc(t.preview || t.subject || '')}</span></div>
-      ${t.owner === 'anuma' && t.status !== 'closed' ? `<span class="amark">${MARK(open)}</span>` : ''}</div>`;
+      ${t.owner === 'anuma' ? (t.status !== 'closed' ? `<span class="amark" title="Anuma">${MARK(open)}</span>` : '') : `<span class="amark" title="Assigned to ${esc(userName(t.owner))}">${D.avatar(userName(t.owner), 'sm', { org: false })}</span>`}</div>`;
   }
 
   /* ── messages ── */
   function voice(m, out) {
     const h = hash(m.id), open = ui().voiceOpen[m.id], meta = m.meta || {}, s = meta.seconds || 12, tr = meta.transcript || m.text;
-    const bars = Array.from({ length: 30 }, (_, i) => `<i style="height:${5 + ((h >> (i % 20)) & 7) * 2 + (i % 5)}px"></i>`).join('');
-    return `<div class="lb ${out ? 'out' : ''}" style="min-width:240px"><div class="row" style="width:100%"><button class="btn sm icon ghost" data-act="toast" data-arg="Playing voice note (demo)">${I('play')}</button><div class="wave">${bars}</div><span class="xs muted">0:${String(s).padStart(2, '0')}</span></div>${tr ? `<button class="xs muted" data-act="ib-transcript" data-arg="${m.id}" style="width:100%;text-align:left;margin-top:2px">${open ? 'Hide' : 'Show'} transcript</button>${open ? `<div class="sm" style="font-style:italic;width:100%">“${esc(tr)}”</div>` : ''}` : ''}<span class="ltm">${tf(m.at)}</span></div>`;
+    const bars = Array.from({ length: 30 }, (_, i) => `<i style="--i:${i};height:${5 + ((h >> (i % 20)) & 7) * 2 + (i % 5)}px"></i>`).join('');
+    return `<div class="lb ${out ? 'out' : ''}" style="min-width:240px"><div class="row" style="width:100%"><button class="btn sm icon ghost" data-act="ib-play" data-arg="${m.id}">${I('play')}</button><div class="wave" style="--dur:${s}s">${bars}</div><span class="xs muted">0:${String(s).padStart(2, '0')}</span></div>${tr ? `<button class="xs muted" data-act="ib-transcript" data-arg="${m.id}" style="width:100%;text-align:left;margin-top:2px">${open ? 'Hide' : 'Show'} transcript</button>${open ? `<div class="sm" style="font-style:italic;width:100%">“${esc(tr)}”</div>` : ''}` : ''}<span class="ltm">${tf(m.at)}</span></div>`;
   }
   function reviewCard(m, t) {
     const r = m.meta, res = r.resolved || r.resolution || (t.resolutions || {})[m.id], done = !!res, pct = (r.best || {}).confidence || 0;
@@ -192,8 +198,9 @@
     if (m.type === 'card') { const k = kindOf(m); if (k === 'summary' && (m.meta.options || []).length) return wrap(summaryBubble(m, t) + side); return wrap(card(m, t) + side); }
     let b;
     const readTick = t.status === 'closed' || (t.messages || []).some((x) => x.from === 'customer' && ms(x.at) > ms(m.at));
-    const tm_ = `<span class="ltm">${tf(m.at)}${out ? TICKS(readTick) : ''}</span>`;
-    if (m.type === 'image') b = `<div class="lb ${out ? 'out' : ''}" style="padding:4px;flex-direction:column;align-items:stretch"><div class="tile" style="width:220px;height:150px;background:${bgOf((m.meta || {}).swatch)}"></div><div style="display:flex;gap:10px;padding:4px 6px 1px">${(m.meta || {}).caption || m.text ? `<span>${esc((m.meta || {}).caption || m.text)}</span>` : ''}${tm_}</div></div>`;
+    const sending = out && (m.meta || {}).sentAt && Date.now() - m.meta.sentAt < 650;
+    const tm_ = `<span class="ltm">${tf(m.at)}${out ? (sending ? TICK1 : TICKS(readTick)) : ''}</span>`;
+    if (m.type === 'image') b = `<div class="lb ${out ? 'out' : ''}" style="padding:4px;flex-direction:column;align-items:stretch"><div class="tile" data-act="ib-lightbox" data-arg="${m.id}" style="width:220px;height:150px;background:${bgOf((m.meta || {}).swatch)}"></div><div style="display:flex;gap:10px;padding:4px 6px 1px">${(m.meta || {}).caption || m.text ? `<span>${esc((m.meta || {}).caption || m.text)}</span>` : ''}${tm_}</div></div>`;
     else if (m.type === 'voice') b = voice(m, out);
     else if (m.type === 'file') { const f = m.meta || {}; b = `<div class="lb ${out ? 'out' : ''}" data-act="toast" data-arg="Opening ${esc(f.name || 'file')} (demo)" style="cursor:pointer;min-width:230px"><div class="row" style="width:100%">${I('file')}<div class="grow"><div class="sm b trunc">${esc(f.name || 'document')}</div><div class="xs muted">${esc(f.size || '')}</div></div>${I('download')}</div>${m.text ? `<span>${esc(m.text)}</span>` : ''}${tm_}</div>`; }
     else b = `<div class="lb ${out ? 'out' : ''}">${quoteFor(m, t)}<span>${esc(m.text || '')}</span>${tm_}</div>`;
@@ -241,7 +248,7 @@
           ${lf && lf.kind === 'draft' ? `<button class="btn outline sm" data-act="ib-addline">${I('plus')} Add line</button><button class="btn outline sm" data-act="ib-sendsum">${I('send')} Send</button>${lf.ref.status === 'pending' ? `<button class="btn sm" data-act="ib-approve">${I('check')} Approve</button>` : ''}<a class="btn ghost sm" href="#/orders/drafts/${lf.ref.id}">Open</a>` : ''}
           ${lf && lf.kind === 'rfq' ? `<a class="btn ghost sm" href="#/orders/rfqs/${lf.ref.id}">Open RFQ</a>` : ''}${lf && lf.kind === 'order' ? `<a class="btn ghost sm" href="#/orders/${lf.ref.id}">Open order</a>` : ''}</div></div>
       <div class="acard"><h4>Case</h4>
-        <div class="row" style="margin-bottom:8px"><span class="sm muted" style="width:52px">Owner</span><select class="select" style="height:28px" data-change="ib-owner"><option value="anuma" ${t.owner === 'anuma' ? 'selected' : ''}>Anuma (AI)</option>${users.map((u) => `<option value="${u.id}" ${t.owner === u.id ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select></div>
+        <div class="row" style="margin-bottom:8px"><span class="sm muted" style="width:52px">Owner</span><button class="btn outline grow" style="justify-content:flex-start" data-act="ib-assign">${t.owner === 'anuma' ? MARK(false) : D.avatar(userName(t.owner), 'sm', { org: false })}<span class="grow trunc" style="text-align:left">${t.owner === 'anuma' ? 'Anuma (AI)' : esc(userName(t.owner))}</span>${I('chevD')}</button></div>
         ${t.owner !== 'anuma' ? `<button class="btn outline sm" style="width:100%" data-act="ib-handback">${I('bot')} Hand back to Anuma</button>` : '<div class="xs muted">Anuma is handling this case and hands off to a person when unsure.</div>'}
         ${t.note ? `<div class="xs" style="margin-top:8px;padding:8px;background:var(--muted);border-radius:8px">${esc(t.note)}</div>` : ''}
         <div class="row wrap" style="margin-top:10px">${t.partyId ? `<a class="btn outline sm" href="#/crm/accounts/${p.id}">${I('users')} Party</a>` : ''}${t.dealId ? `<a class="btn outline sm" href="#/leads/${t.dealId}">${I('handshake')} Deal</a>` : t.partyId ? `<button class="btn outline sm" data-act="ib-mkdeal">${I('plus')} Deal</button>` : ''}${t.rfqId ? `<a class="btn outline sm" href="#/orders/rfqs/${t.rfqId}">${I('sheet')} RFQ</a>` : ''}</div>
@@ -254,43 +261,129 @@
   function floating(t, u) {
     if (windowClosed(t)) { const li = lastInbound(t), cn = contact(t.contactId); return `<div class="float"><div class="winc"><span class="icotile">${I('lock')}</span><div class="grow" style="min-width:0"><div class="b sm">24-hour window closed</div><div class="xs muted">${esc(((cn && cn.name) || nameOf(t)).split(' ')[0])} last wrote ${li ? 'at ' + tf(li) + ' on ' + longDay(li) : 'never'}. Free text will not be delivered.</div></div><button class="btn" data-act="ib-template">${I('file')} Send a template</button></div></div>`; }
     return `<div class="float"><div class="comp"><textarea rows="1" id="ib-ta" data-input="ib-draft" placeholder="${t.owner === 'anuma' ? 'Reply as yourself — this takes the case from Anuma' : 'Write a reply…'}">${esc(u.draft[t.id] || '')}</textarea>
-      <div class="row wrap"><button class="btn ghost icon sm" data-act="ib-attach" title="Attach">${I('paperclip')}</button><button class="btn ghost sm" data-act="ib-suggest">${I('sparkle')} Suggest reply</button><button class="btn ghost sm" data-act="ib-quick">${I('zap')} Templates</button>
+      <div class="row"><button class="btn ghost icon sm" data-act="ib-attach" title="Attach">${I('paperclip')}</button><button class="btn ghost sm" data-act="ib-suggest">${I('sparkle')} Suggest reply</button><button class="btn ghost sm" data-act="ib-quick">${I('zap')} Templates</button>
       <span class="row xs muted right" style="gap:6px" title="Anuma answers the simulated customer reply automatically">Auto-reply ${D.switch(u.auto, 'ib-auto')}</span><button class="btn ghost sm" data-act="ib-sim" title="Simulate an incoming customer message">${I('user')} Simulate customer</button><button class="btn sm" data-act="ib-send">${I('send')} Send</button></div></div></div>`;
   }
   function chat(t, u, showR, narrow) {
     const cn = contact(t.contactId), p = party(t.partyId), [stLabel, stIcon] = statusMeta(t);
     const comments = (t.messages || []).filter((m) => m.type === 'comment').length;
-    let msgs = t.messages || []; const hidden = !u.expanded && msgs.length > 40 ? msgs.length - 40 : 0; if (hidden) msgs = msgs.slice(hidden);
-    let last = ''; const body = msgs.map((m) => { const k = hasClock(m.at) ? dayKey(m.at) : ''; const sep = k && k !== last ? `<div class="dayrow">${dayLabel(m.at)}</div>` : ''; if (k) last = k; return sep + bubble(m, t, u); }).join('');
     const phone = (cn && cn.phone) || p.phone || t.unknownPhone || '';
-    return `<div class="ib-head"><div class="grow" style="min-width:0"><h2><span class="trunc">${esc(nameOf(t))}</span>${cn && cn.name && !t.unknownPhone && cn.name !== p.name ? `<span class="muted" style="font-weight:400;font-size:13px">${esc(cn.name)}</span>` : ''}</h2><div class="xs muted row gap4"><span class="mono">${esc(t.unknownPhone ? (CH[t.channel] || CH.web)[2] + ' · not in CRM' : phone || (CH[t.channel] || CH.web)[2])}</span><span style="width:1px;height:10px;background:var(--border)"></span><span class="mono">${esc(caseNo(t))}</span></div></div>
+    const ownerN = t.owner === 'anuma' ? 'Anuma' : userName(t.owner);
+    return `<div class="ib-head"><div class="grow" style="min-width:0"><h2><span class="trunc">${esc(nameOf(t))}</span>${cn && cn.name && !t.unknownPhone && cn.name !== p.name ? `<span class="muted" style="font-weight:400;font-size:13px">${esc(cn.name)}</span>` : ''}</h2><div class="xs muted row gap4"><span id="ib-sub" class="row gap4">${subHtml(t, phone)}</span></div></div>
+      <button class="btn outline sm" data-act="ib-assign" title="Assign this case">${t.owner === 'anuma' ? MARK(false) : D.avatar(ownerN, 'sm', { org: false })}<span class="lbl">${esc(ownerN)}</span> ${I('chevD')}</button>
       <button class="btn outline sm" data-act="ib-comments">${I('chat')} <span>${comments}</span><span class="lbl"> comment${comments === 1 ? '' : 's'}</span></button>
       <button class="btn outline sm" data-act="ib-status">${I(stIcon)} <span class="lbl">${stLabel}</span> ${I('chevD')}</button>
       <button class="btn outline sm" data-act="ib-orders">${I('history')} <span class="lbl">View all orders</span></button>
       <button class="btn outline icon sm" data-act="ib-csearch" title="Search in conversation">${I('search')}</button>
       <button class="btn outline icon sm" data-act="ib-toggle-r" title="Details panel">${I('sidebar')}</button></div>
       ${u.csearch ? `<div class="cqbar">${I('search')}<input class="input" data-input="ib-cq" placeholder="Search in this conversation" value="${esc(u.cq)}" style="width:100%"><button class="btn ghost icon sm" data-act="ib-csearch">${I('x')}</button></div>` : ''}
-      <div class="ib-stream chatbg" id="ib-stream">${hidden ? `<button class="earlier" data-act="ib-earlier">Show earlier conversation</button>` : ''}${body}${u.typing === t.id ? '<div class="typing"><i></i><i></i><i></i></div>' : ''}</div>${floating(t, u)}`;
+      <div class="ib-stream chatbg" id="ib-stream">${streamInner(t, u)}</div>${floating(t, u)}`;
   }
+
+
+  /* ═══ motion engine: staged message reveal, typing indicator, list FLIP, skeletons ═══ */
+  const ST = () => (ui().st = ui().st || { seen: {}, queue: [], pending: new Set(), fresh: new Set(), timer: null, tp: null, lastIdx: -2, uc: null, tops: null, sig: null, skel: false, skelBusy: false });
+  const needsStage = (m) => m.from === 'customer' || m.from === 'anuma' || m.type === 'card';
+  const typesOut = (m) => m.from !== 'customer' && m.from !== 'system' && m.type !== 'comment';
+  const inThreads = () => /^\/inbox\/threads/.test(D.path());
+  function plan(c) {
+    const st = ST(), idx = D.scn.index;
+    const jump = st.lastIdx !== -2 && (idx < st.lastIdx || idx - st.lastIdx > 1); st.lastIdx = idx;
+    if (st.uc !== D.uc || jump) { st.seen = {}; st.queue = []; st.pending = new Set(); st.fresh = new Set(); st.tp = null; clearTimeout(st.timer); st.timer = null; st.uc = D.uc; st.sig = null; st.tops = null; st.init = false; }
+    const first = !st.init; st.init = true;
+    threads().forEach((t) => {
+      const ids = (t.messages || []).map((m) => m.id), isSel = !!c && t.id === c.id;
+      if (!st.seen[t.id]) { if (first || !isSel) { st.seen[t.id] = new Set(ids); return; } st.seen[t.id] = new Set(); }
+      if (!isSel) { st.seen[t.id] = new Set(ids); return; }
+      const prev = st.seen[t.id], keep = new Set(ids.filter((i) => prev.has(i)));
+      (t.messages || []).forEach((m) => {
+        if (keep.has(m.id)) return; keep.add(m.id);
+        if (needsStage(m)) { st.pending.add(m.id); st.queue.push({ tid: t.id, id: m.id }); } else { st.fresh.add(m.id); setTimeout(() => st.fresh.delete(m.id), 500); }
+      });
+      st.seen[t.id] = keep;
+    });
+    // entering the inbox → shimmer skeleton rows for half a second
+    if (!/^\/inbox\/threads/.test(D._lastPath || '') && !st.skelBusy) { st.skel = true; st.skelBusy = true; setTimeout(() => { st.skel = false; st.skelBusy = false; if (inThreads()) D.render(); }, 520); }
+  }
+  function flush() { const st = ST(); clearTimeout(st.timer); st.timer = null; st.queue = []; st.pending = new Set(); st.tp = null; }
+  function kick() {
+    const st = ST(); if (st.timer || !st.queue.length) return;
+    const { tid, id } = st.queue[0], t = threads().find((x) => x.id === tid), m = t && (t.messages || []).find((x) => x.id === id);
+    if (!m || tid !== ui().sel) { st.queue.shift(); st.pending.delete(id); return kick(); }
+    const outTyping = typesOut(m) && m.type !== 'card';
+    let wait = outTyping ? Math.min(1400, 800 + String(m.text || '').length * 9) : m.type === 'card' ? 900 : m.type === 'image' ? 520 : 280;
+    if (st.queue.length > 3) wait = Math.round(wait * 0.55);
+    st.tp = outTyping ? { tid, kind: 'typing', who: m.from } : m.type === 'card' ? { tid, kind: 'read' } : null;
+    refreshStream();
+    st.timer = setTimeout(() => { st.timer = null; st.queue.shift(); st.pending.delete(id); st.tp = null; st.fresh.add(id); refreshStream(); setTimeout(() => st.fresh.delete(id), 500); kick(); }, wait);
+  }
+  function subHtml(t, phone) {
+    const tp = ST().tp;
+    if (tp && tp.tid === t.id && tp.kind === 'typing') return `<span style="color:var(--success);font-weight:500">${tp.who === 'anuma' ? 'Anuma is typing…' : 'typing…'}</span>`;
+    return `<span class="mono">${esc(t.unknownPhone ? (CH[t.channel] || CH.web)[2] + ' · not in CRM' : phone || (CH[t.channel] || CH.web)[2])}</span><span style="width:1px;height:10px;background:var(--border)"></span><span class="mono">${esc(caseNo(t))}</span>`;
+  }
+  function streamInner(t, u) {
+    const st = ST(); let msgs = (t.messages || []).filter((m) => !st.pending.has(m.id));
+    const hidden = !u.expanded && msgs.length > 40 ? msgs.length - 40 : 0; if (hidden) msgs = msgs.slice(hidden);
+    let last = '';
+    const body = msgs.map((m) => {
+      const k = hasClock(m.at) ? dayKey(m.at) : ''; const sep = k && k !== last ? `<div class="dayrow">${dayLabel(m.at)}</div>` : ''; if (k) last = k;
+      let h = bubble(m, t, u); if (st.fresh.has(m.id)) h = h.replace('class="', 'class="msg-new ');
+      return sep + h;
+    }).join('');
+    const tp = st.tp && st.tp.tid === t.id ? st.tp : null;
+    const tpH = !tp ? '' : tp.kind === 'typing' ? `<div class="stream-tp ${tp.who === 'customer' ? '' : 'out'} msg-new" aria-label="typing"><div class="typing ${tp.who === 'customer' ? '' : 'out'}"><i></i><i></i><i></i></div>${tp.who === 'customer' ? '' : (tp.who === 'anuma' ? MARK(t.status === 'open') : D.avatar(userName(tp.who), 'sm', { org: false }))}</div>`
+      : `<div class="stream-tp out msg-new"><div class="rd-card"><div class="xs muted" style="margin-bottom:8px">Anuma is reading…</div><div class="sk shimmer" style="width:55%"></div><div class="sk shimmer" style="width:85%;margin-top:8px"></div><div class="sk shimmer" style="width:40%;margin-top:8px"></div></div>${MARK(true)}</div>`;
+    return `${hidden ? `<button class="earlier" data-act="ib-earlier">Show earlier conversation</button>` : ''}${body}${tpH}`;
+  }
+  function refreshStream() {
+    if (!inThreads()) return; const t = cur(), u = ui(), el = document.getElementById('ib-stream'); if (!t || !el) return;
+    const near = el.scrollHeight - el.scrollTop - el.clientHeight < 160;
+    el.innerHTML = streamInner(t, u);
+    const sub = document.getElementById('ib-sub'); if (sub) { const cn = contact(t.contactId), p = party(t.partyId); sub.innerHTML = subHtml(t, (cn && cn.phone) || p.phone || t.unknownPhone || ''); }
+    if (near || ST().tp) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    refreshList();
+  }
+  function listHtml(L, c) {
+    if (ST().skel) return Array.from({ length: 6 }, (_, i) => `<div class="skrow"><div class="sk shimmer" style="width:${34 + (i % 3) * 8}%"></div><div class="sk shimmer" style="width:${52 + (i % 4) * 9}%;height:12px"></div><div class="sk shimmer" style="width:${68 - (i % 3) * 10}%"></div></div>`).join('');
+    return L.map((t) => row(t, c)).join('') || '<div class="empty">No cases match.</div>';
+  }
+  function refreshList() {
+    if (!inThreads()) return; const el = document.getElementById('ib-list'); if (!el) return; const sc = el.scrollTop;
+    el.innerHTML = listHtml(filtered(), cur()); el.scrollTop = sc; listFx(document.getElementById('view'));
+  }
+  // FLIP slide for reordered rows, flash for changed rows, pop for new unread chips
+  function listFx(root) {
+    const list = root.querySelector('#ib-list'); if (!list || ST().skel) return; const st = ST(), prevTop = st.tops, prevSig = st.sig, tops = {}, sig = {};
+    list.querySelectorAll('.crow').forEach((r) => {
+      const id = r.dataset.arg, top = r.offsetTop; tops[id] = top; sig[id] = [r.dataset.sig, (r.querySelector('.unread') || {}).dataset ? r.querySelector('.unread').dataset.u : '0'];
+      if (prevTop && prevTop[id] != null && prevTop[id] !== top && r.animate) r.animate([{ transform: `translateY(${prevTop[id] - top}px)` }, { transform: 'none' }], { duration: 400, easing: 'cubic-bezier(.22,.8,.24,1)' });
+      if (prevSig && !prevSig[id]) r.classList.add('row-new'); else if (prevSig && prevSig[id][0] !== sig[id][0]) { r.classList.add('row-new'); const un = r.querySelector('.unread'); if (un && +sig[id][1] > +prevSig[id][1]) un.classList.add('pop'); }
+    });
+    st.tops = tops; st.sig = sig;
+  }
+  // assignment menu with photo avatars
 
   D.page('/inbox/threads', {
     title: 'Inbox', crumb: 'Inbox',
     render({ q }) {
       const u = ui(), L = filtered(), c = sel(q) || L[0] || null; if (c) u.sel = c.id;
-      const narrow = !document.getElementById('app').classList.contains('panel-closed') && innerWidth < 1560;
+      const narrow = innerWidth < 1480;
       const showR = u.rcol == null ? !narrow : u.rcol;
+      plan(c);
       const tabs = [['all', 'All'], ['open', 'Open'], ['esc', 'Escalated'], ['closed', 'Closed']];
       const chs = S().channels || []; const chSel = chs.find((x) => x.id === u.ch);
       return `<div class="page-full"><div class="ib ${showR ? '' : 'nor'} ${showR && narrow ? 'over' : ''}">
         <div class="col-l"><div class="ib-lh"><button class="ib-chbtn" data-act="ib-chpick">${WA}<span>${chSel ? esc(chSel.name || chSel.number) : u.ch !== 'all' ? (CH[u.ch] || CH.web)[2] : 'All numbers'}</span>${I('chevD')}</button>
           <div class="row" style="margin-top:10px"><div class="search grow">${I('search')}<input class="input" style="width:100%" data-input="ib-q" placeholder="Search cases" value="${esc(u.q)}"></div><button class="btn outline icon sm" data-act="ib-sort" title="Sort">${I('filter')}</button></div></div>
           <div class="ib-tabs"><div class="pills">${tabs.map(([k, l]) => `<button class="pill ${u.tab === k ? 'on' : ''}" data-act="ib-tab" data-arg="${k}">${l}</button>`).join('')}</div></div>
-          <div class="ib-list">${L.map((t) => row(t, c)).join('') || '<div class="empty">No cases match.</div>'}</div><div class="ib-foot">${threads().length} cases · Demo Merchant User</div></div>
-        <div class="col-m">${c ? chat(c, u, showR, narrow) : '<div class="empty" style="margin:auto">Select a case</div>'}</div>
+          <div class="ib-list" id="ib-list">${listHtml(L, c)}</div><div class="ib-foot">${threads().length} cases · Demo Merchant User</div></div>
+        <div class="col-m ${u.xfade ? 'xf' : ''}">${c ? chat(c, u, showR, narrow) : '<div class="empty" style="margin:auto">Select a case</div>'}</div>
         ${c && showR ? rightCol(c) : ''}</div></div>`;
     },
     after(view, { q }) {
-      const s = view.querySelector('#ib-stream'); if (s) { const u = ui(); if (u.stick !== false) s.scrollTop = s.scrollHeight; u.stick = true; }
+      const s = view.querySelector('#ib-stream'); if (s) { const u = ui(); if (u.stick !== false) s.scrollTop = s.scrollHeight; u.stick = true; u.xfade = false; }
+      listFx(view); kick();
       const t = sel(q) || filtered()[0]; if (t && t.unread && ui().sel === t.id) { t.unread = 0; D.render(); }
       const ta = view.querySelector('#ib-ta'); if (ta) { ta.style.height = 'auto'; ta.style.height = Math.min(110, ta.scrollHeight) + 'px'; }
     },
@@ -316,11 +409,28 @@
   }
   const sys = (t, text, actor) => push(t, { from: 'system', type: 'text', text, meta: { actor: actor || 'System' } });
   const A = D.act;
-  A('ib-open', (el) => { const u = ui(); u.sel = el.dataset.arg; u.stick = true; u.cq = ''; u.csearch = false; history.replaceState(null, '', '#/inbox/threads?case=' + el.dataset.arg); D.render(); });
+  A('ib-open', (el) => { const u = ui(); flush(); u.xfade = u.sel !== el.dataset.arg; u.sel = el.dataset.arg; u.stick = true; u.cq = ''; u.csearch = false; history.replaceState(null, '', '#/inbox/threads?case=' + el.dataset.arg); D.render(); });
+
+  A('ib-assign', (el) => {
+    const t = cur(); if (!t) return; const users = (S().users || []).filter((u) => u.status !== 'invited');
+    const items = [{ label: 'Anuma (AI)', icon: 'bot', check: t.owner === 'anuma', run: () => assignTo('anuma') }].concat(users.map((u) => ({ label: u.name + (u.role ? ' · ' + u.role : ''), icon: 'user', check: t.owner === u.id, run: () => assignTo(u.id) })));
+    D.menu(el, items, { match: true });
+    const m = document.querySelector('.menu'); if (m) m.querySelectorAll('[data-mk]').forEach((b) => { const k = +b.dataset.mk; if (k === 0) return; const svg = b.querySelector('svg'); if (svg) svg.outerHTML = D.avatar(users[k - 1].name, 'sm', { org: false }); });
+  });
+  function assignTo(v) { const t = cur(); if (!t || t.owner === v) return; t.owner = v; if (v !== 'anuma' && t.status === 'closed') t.status = 'open'; sys(t, v === 'anuma' ? 'handed back the conversation to Anuma' : 'assigned conversation to ' + userName(v), me().name); D.toast(v === 'anuma' ? 'Handed back to Anuma' : userName(v) + ' now owns this case'); D.render(); }
+  D.input('ib-owner', (v) => assignTo(v));
+  A('ib-play', (el) => {
+    const row_ = el.closest('.lb'), w = row_ && row_.querySelector('.wave'); if (!w) return; const on = w.classList.toggle('playing'); const secs = parseFloat((w.style.getPropertyValue('--dur') || '10s')) || 10;
+    el.innerHTML = I(on ? 'pause' : 'play'); clearTimeout(w._t); if (on) w._t = setTimeout(() => { w.classList.remove('playing'); el.innerHTML = I('play'); }, secs * 1000);
+  });
+  A('ib-lightbox', (el) => {
+    const t = cur(), m = (t.messages || []).find((x) => x.id === el.dataset.arg); if (!m) return; const imgs = (t.messages || []).filter((x) => x.type === 'image'); const k = imgs.findIndex((x) => x.id === m.id);
+    D.modal({ title: esc((m.meta || {}).caption || m.text || 'Photo') + ` <span class="muted xs" style="font-weight:400">· ${k + 1} of ${imgs.length}</span>`, lg: true, body: `<div class="tile" style="width:100%;height:min(60vh,460px);background:${bgOf((m.meta || {}).swatch)};cursor:default;border-radius:12px"></div><div class="xs muted" style="margin-top:8px">Sent ${esc(tf(m.at))} · ${esc(nameOf(t))}</div>`, actions: [{ label: 'Close', cls: 'outline' }] });
+  });
   A('ib-tab', (el) => { ui().tab = el.dataset.arg; D.render(); });
-  A('ib-toggle-r', () => { const u = ui(); const narrow = !document.getElementById('app').classList.contains('panel-closed') && innerWidth < 1560; const cur_ = u.rcol == null ? !narrow : u.rcol; u.rcol = !cur_; u.stick = false; D.render(); });
+  A('ib-toggle-r', () => { const u = ui(); const narrow = innerWidth < 1480; const cur_ = u.rcol == null ? !narrow : u.rcol; u.rcol = !cur_; u.stick = false; D.render(); });
   A('ib-sort', (el) => D.menu(el, [['recent', 'Most recent', 'clock'], ['old', 'Oldest first', 'history'], ['unread', 'Most unread', 'bell']].map(([k, l, ic]) => ({ label: l, icon: ui().sort === k ? 'check' : ic, run: () => { ui().sort = k; D.render(); } }))));
-  A('ib-chpick', (el) => D.menu(el, [{ label: 'All numbers', icon: ui().ch === 'all' ? 'check' : 'chat', run: () => { ui().ch = 'all'; D.render(); } }].concat((S().channels || []).map((c) => ({ label: (c.name || (CH[c.type] || CH.web)[2]) + (c.number ? ' · ' + c.number : ''), icon: ui().ch === (c.id || c.type) ? 'check' : (CH[c.type] || CH.web)[0], run: () => { ui().ch = c.id || c.type; D.render(); } })))));
+  A('ib-chpick', (el) => D.menu(el, [{ label: 'All numbers', icon: 'chat', check: ui().ch === 'all', hint: String(threads().length), run: () => { ui().ch = 'all'; D.render(); } }].concat((S().channels || []).map((c) => ({ label: (c.name || (CH[c.type] || CH.web)[2]) + (c.number ? ' · ' + c.number : ''), icon: (CH[c.type] || CH.web)[0], check: ui().ch === (c.id || c.type), hint: String(threads().filter((t) => t.channel === c.type).length), run: () => { ui().ch = c.id || c.type; D.render(); } }))), { match: true }));
   A('ib-transcript', (el) => { const v = ui().voiceOpen; v[el.dataset.arg] = !v[el.dataset.arg]; ui().stick = false; D.render(); });
   A('ib-earlier', () => { ui().expanded = true; ui().stick = false; D.render(); });
   A('ib-auto', () => { ui().auto = !ui().auto; D.toast(ui().auto ? 'Anuma will auto-reply to simulated customer messages' : 'Auto-reply off', 'sparkle'); ui().stick = false; D.render(); });
@@ -329,10 +439,9 @@
   D.input('ib-q', (v) => { ui().q = v; ui().stick = false; D.render(); });
   D.input('ib-cq', (v) => { ui().cq = v; ui().stick = false; D.render(); });
   D.input('ib-draft', (v, el) => { const t = cur(); if (t) ui().draft[t.id] = v; el.style.height = 'auto'; el.style.height = Math.min(110, el.scrollHeight) + 'px'; });
-  D.input('ib-owner', (v) => { const t = cur(); if (!t) return; t.owner = v; sys(t, v === 'anuma' ? 'handed back the conversation to Anuma' : 'assigned conversation to ' + userName(v), me().name); D.toast(v === 'anuma' ? 'Handed back to Anuma' : userName(v) + ' now owns this case'); D.render(); });
   A('ib-handback', () => { const t = cur(); if (!t) return; t.owner = 'anuma'; if (t.status === 'hold') t.status = 'open'; sys(t, 'handed back the conversation to Anuma', me().name); push(t, { from: 'anuma', type: 'text', text: 'Thanks — I’ll take it from here and keep the customer posted.' }); D.toast('Handed back to Anuma', 'bot'); D.render(); });
   A('ib-status', (el) => { const t = cur(); if (!t) return; const set = (s, l) => () => { t.status = s; sys(t, 'set status to ' + l, me().name); D.toast('Case ' + l.toLowerCase()); D.render(); }; D.menu(el, [['open', 'Open', 'check'], ['hold', 'On hold', 'clock'], ['closed', 'Closed', 'x']].map(([s, l, ic]) => ({ label: l, icon: t.status === s ? 'check' : ic, run: set(s, l) }))); });
-  A('ib-send', () => { const t = cur(), u = ui(); const v = (u.draft[t.id] || '').trim(); if (!v) return D.toast('Type a message first', 'info'); if (t.owner === 'anuma') { t.owner = me().id; sys(t, 'assigned conversation to self', me().name); } push(t, { from: me().id, type: 'text', text: v }); u.draft[t.id] = ''; u.stick = true; D.render(); if (u.auto) setTimeout(() => simulate(t.id), 1100); });
+  A('ib-send', () => { const t = cur(), u = ui(); const v = (u.draft[t.id] || '').trim(); if (!v) return D.toast('Type a message first', 'info'); if (t.owner === 'anuma') { t.owner = me().id; sys(t, 'assigned conversation to self', me().name); } push(t, { from: me().id, type: 'text', text: v, meta: { sentAt: Date.now() } }); u.draft[t.id] = ''; u.stick = true; D.render(); setTimeout(() => refreshStream(), 700); if (u.auto) setTimeout(() => simulate(t.id), 1100); });
   document.addEventListener('keydown', (e) => { if (e.target && e.target.id === 'ib-ta' && e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); D.acts['ib-send'](); } });
   A('ib-suggest', () => { const t = cur(); const last = [...(t.messages || [])].reverse().find((m) => m.from === 'customer' && m.text); const p = party(t.partyId); ui().draft[t.id] = `Hi ${((contact(t.contactId) || {}).name || p.name || 'there').split(' ')[0]}, thanks for the details${last ? ' on “' + last.text.slice(0, 40) + (last.text.length > 40 ? '…' : '') + '”' : ''}. I’ve noted everything and will confirm availability and pricing shortly.`; D.toast('Anuma drafted a reply', 'sparkle'); ui().stick = false; D.render(); });
   A('ib-quick', (el) => { const T = (S().templates || []).filter((x) => x.status === 'approved').slice(0, 6); const t = cur(); D.menu(el, (T.length ? T : [{ name: 'Acknowledge', body: 'Thanks — we’ve received this and will revert shortly.' }]).map((x) => ({ label: x.name, icon: 'zap', run: () => { ui().draft[t.id] = x.body; ui().stick = false; D.render(); } }))); });
@@ -342,7 +451,7 @@
   function simulate(id) {
     const t = threads().find((x) => x.id === id); if (!t) return; const u = ui(); const text = CUST[hash(t.id + (t.messages || []).length) % CUST.length];
     push(t, { from: 'customer', type: 'text', text }); if (t.id !== u.sel) t.unread = (t.unread || 0) + 1; if (t.status === 'closed') { t.status = 'open'; sys(t, 'reopened the case — customer replied'); } u.stick = true; D.render();
-    if (u.auto && t.owner === 'anuma') { u.typing = t.id; D.render(); setTimeout(() => { u.typing = null; const r = /rate|price/i.test(text) ? 'For 500+ units I can offer a slab rate — sharing a revised quote in a moment.' : /deliver|kab/i.test(text) ? 'Dispatch is planned within 2 working days of confirmation; I’ll share the tracking link.' : /pay/i.test(text) ? 'Noted — I’ll mark the order as payment-pending until it reflects.' : 'Done — I’ve updated the order and will confirm shortly.'; push(t, { from: 'anuma', type: 'text', text: r }); D.render(); }, 1300); }
+    if (u.auto && t.owner === 'anuma') setTimeout(() => { const r = /rate|price/i.test(text) ? 'For 500+ units I can offer a slab rate — sharing a revised quote in a moment.' : /deliver|kab/i.test(text) ? 'Dispatch is planned within 2 working days of confirmation; I’ll share the tracking link.' : /pay/i.test(text) ? 'Noted — I’ll mark the order as payment-pending until it reflects.' : 'Done — I’ve updated the order and will confirm shortly.'; push(t, { from: 'anuma', type: 'text', text: r }); D.render(); }, 500);
   }
   A('ib-new', () => D.go('/inbox/threads'));
   A('ib-chfilter', (el) => { ui().ch = el.dataset.arg; ui().tab = 'all'; D.go('/inbox/threads'); });

@@ -13,7 +13,9 @@
   .ss{max-width:760px;margin:0 auto;padding:24px 16px 80px}.ss .hero{border-radius:16px;padding:22px;color:#fff;background:linear-gradient(135deg,#171717,#404040)}
   .qty{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:8px;overflow:hidden}.qty button{width:28px;height:28px}.qty button:hover{background:var(--muted)}.qty span{min-width:30px;text-align:center;font-variant-numeric:tabular-nums;font-size:13px}
   .cartbar{position:sticky;bottom:12px;margin-top:18px;background:#171717;color:#fff;border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 10px 30px rgba(0,0,0,.25)}.cartbar .btn{background:#fff;color:#171717;border-color:#fff}`;
-  st.textContent += `.child-row{background:#fafafa}.chev{display:inline-grid;place-items:center;width:20px;vertical-align:middle;color:var(--muted-foreground)}.chev svg.i{width:14px;height:14px}`;
+  st.textContent += `.gridbox{position:relative;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#fff}.gridbox .dmgrid{border-radius:0}.gridbox .dmgrid .ag-root-wrapper{border:0;border-radius:0}.gridbox.nf .dmgrid{animation:none}
+  .child-enter{animation:os-enter .3s cubic-bezier(.22,.8,.24,1) both}.skel{position:absolute;inset:0;background:#fff;z-index:3;pointer-events:none;animation:pskelout .15s linear .4s forwards}.skel .sr{display:flex;gap:14px;align-items:center;height:40px;padding:0 14px;border-bottom:1px solid #eee}.skel .sr i{display:block;height:10px}@keyframes pskelout{to{opacity:0;visibility:hidden}}
+  .chev{transition:transform .2s}.child-row{background:#fafafa}.chev{display:inline-grid;place-items:center;width:20px;vertical-align:middle;color:var(--muted-foreground)}.chev svg.i{width:14px;height:14px}`;
   document.head.appendChild(st);
 
   const S = () => DM.S;
@@ -57,6 +59,8 @@
     return out.sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
   }
   let curRows = [];
+  const skel = () => { DM.ui.skeld = DM.ui.skeld || {}; const k = 'products|' + DM.uc; if (DM.ui.skeld[k]) return ''; DM.ui.skeld[k] = 1; const w = [220, 260, 100, 90, 80]; return `<div class="skel"><div class="sr" style="background:#fafafa">${w.map((x) => `<i class="shimmer" style="width:${x}px"></i>`).join('')}</div>${Array.from({ length: 13 }, () => `<div class="sr">${w.map((x) => `<i class="shimmer" style="width:${x - 20 + (Math.random() * 30 | 0)}px"></i>`).join('')}</div>`).join('')}</div>`; };
+  const applyHide = () => { const api = DM._gridApis && DM._gridApis[0]; if (!api || DM.path() !== '/products') return; try { api.setColumnsVisible(PC.filter((c) => ui.hide[c.id]).map((c) => c.label), false); } catch (e) {} };
   const PC = [
     { id: 'sr', label: 'SR · Style reference', flex: 2, render: (r) => r.kind === 'style' ? `<span class="chev">${I(ui.open[r.key] ? 'chevD' : 'chevR')}</span><b>${esc(r.code)}</b> <span class="muted" style="margin-left:4px">${r.count}</span>` : `<span style="padding-left:30px" class="muted">└</span> <span>${esc(r.label)}</span> <span class="mono xs muted" style="margin-left:6px">${esc(r.sku || '')}</span>` },
     { id: 'category', label: 'Category', flex: 2, render: (r) => (r.kind === 'style' ? esc(r.category || '') : '') },
@@ -66,20 +70,21 @@
     { id: 'status', label: 'Status', w: '150px', render: (r) => (r.kind === 'style' ? `<span class="row" style="gap:8px">${DM.status(r.status === 'active' ? 'Active' : 'Draft', r.status === 'active' ? 'green' : 'grey')}<a class="btn ghost icon sm" href="#/products/${r.pid}" title="Open product">${I('ext')}</a></span>` : '') },
   ];
   const gridFoot = (n, noun) => (n > 50 ? '' : `<div class="gridfoot"><span>${F.num(n)} ${noun} in view</span><span class="grow"></span><span class="pg">50 / page ${I('chevD')}</span><span>1–${n} of ${F.num(n)}</span><span class="pn">${I('chevL')}</span><span class="pn">${I('chevR')}</span></div>`);
-  DM.page('/products', { title: 'Products', crumb: 'Products', render() {
+  DM.page('/products', { title: 'Products', crumb: 'Products', after() { setTimeout(applyHide, 40); }, render() {
     const styles = buildStyles(); const all = new Set(prods().map((p) => styleOf(p).key)).size;
+    const nf = ui.nf; ui.nf = false; const jo = ui.just; ui.just = null;
     curRows = []; styles.forEach((r) => { curRows.push(r); if (ui.open[r.key]) r.rows.forEach((v, i) => curRows.push({ rid: 'v:' + r.key + ':' + i, kind: 'var', ...v })); });
     const hid = Object.values(ui.hide).filter(Boolean).length;
     const vlabel = ui.cat !== 'All' ? ui.cat : ui.status === 'draft' ? 'Draft styles' : ui.status === 'active' ? 'Active styles' : 'All styles';
-    return `<div class="page wide"><div class="ph"><div><h1>Products</h1><p>${F.num(all)} style${all === 1 ? '' : 's'}</p></div><div class="acts"><a class="btn outline" href="#/stock/main">${I('ext')} Stock sheet</a><a class="btn outline" href="#/products/import">${I('upload')} Import</a><button class="btn outline" data-act="prod-cats">${I('tag')} Categories</button><a class="btn" href="#/products/create">${I('plus')} New product</a></div></div>
-      <div class="toolbar"><button class="btn outline sm" data-act="prod-vmenu">${I('grid')} ${esc(vlabel)} ${I('chevD')}</button>${DM.seg([{ key: 'collapsed', label: 'Collapsed', icon: 'chevU' }, { key: 'expanded', label: 'Expanded', icon: 'chevD' }], ui.mode, 'prod-mode')}<div class="row gap12 right"><button class="btn outline sm" data-act="prod-cols">${I('columns')} Columns${hid ? ' · ' + hid + ' off' : ''}</button>${DM.searchBox('prod-q', 'Search styles…', ui.q)}</div></div>
-      <div class="gridbox">${DM.table(PC.filter((c) => !ui.hide[c.id]), curRows, { click: 'prod-row', idKey: 'rid', pageSize: 50, rowCls: (r) => (r.kind === 'var' ? 'child-row' : ''), empty: 'No styles match this view.' })}${styles.length ? gridFoot(curRows.length, curRows.length === styles.length ? 'styles' : 'rows') : ''}</div></div>`;
+    return `<div class="page wide"><div class="ph"><div><h1>Products</h1><p><span data-count="${all}" data-ck="styles">${F.num(all)}</span> style${all === 1 ? '' : 's'}</p></div><div class="acts"><a class="btn outline" href="#/stock/main">${I('ext')} Stock sheet</a><a class="btn outline" href="#/products/import">${I('upload')} Import</a><button class="btn outline" data-act="prod-cats">${I('tag')} Categories</button><a class="btn" href="#/products/create">${I('plus')} New product</a></div></div>
+      <div class="toolbar"><button class="btn outline" data-act="prod-vmenu">${I('grid')} ${esc(vlabel)} ${I('chevD')}</button>${DM.seg([{ key: 'collapsed', label: 'Collapsed', icon: 'chevU' }, { key: 'expanded', label: 'Expanded', icon: 'chevD' }], ui.mode, 'prod-mode')}<div class="row gap12 right"><button class="btn outline" data-act="prod-cols">${I('columns')} Columns${hid ? ' · ' + hid + ' off' : ''}</button>${DM.searchBox('prod-q', 'Search styles…', ui.q)}</div></div>
+      <div class="gridbox ${nf ? 'nf' : ''}">${nf ? '' : skel()}${DM.table(PC, curRows, { click: 'prod-row', idKey: 'rid', pageSize: 50, rowCls: (r) => (r.kind === 'var' ? 'child-row' + (jo && r.rid.startsWith('v:' + jo + ':') ? ' child-enter' : '') : ''), empty: 'No styles match this view.' })}${styles.length ? gridFoot(curRows.length, curRows.length === styles.length ? 'styles' : 'rows') : ''}</div></div>`;
   } });
-  DM.act('prod-row', (el) => { const r = curRows.find((x) => x.rid === el.dataset.arg); if (!r) return; if (r.kind === 'style') { ui.open[r.key] = !ui.open[r.key]; ui.mode = Object.values(ui.open).some(Boolean) ? (buildStyles().every((x) => ui.open[x.key]) ? 'expanded' : ui.mode) : 'collapsed'; DM.render(); } else DM.go('/products/' + r.pid); });
-  DM.act('prod-mode', (el) => { ui.mode = el.dataset.arg; ui.open = {}; if (ui.mode === 'expanded') buildStyles().forEach((r) => (ui.open[r.key] = true)); DM.render(); });
-  DM.act('prod-vmenu', (el) => DM.menu(el, [{ label: 'All styles', icon: ui.cat === 'All' && ui.status === 'all' ? 'check' : 'grid', run: () => { ui.cat = 'All'; ui.status = 'all'; DM.render(); } }, { label: 'Active styles', icon: ui.status === 'active' ? 'check' : 'grid', run: () => { ui.status = 'active'; ui.cat = 'All'; DM.render(); } }, { label: 'Draft styles', icon: ui.status === 'draft' ? 'check' : 'grid', run: () => { ui.status = 'draft'; ui.cat = 'All'; DM.render(); } }].concat(cats().slice(1).map((c) => ({ label: c, icon: ui.cat === c ? 'check' : 'tag', run: () => { ui.cat = c; ui.status = 'all'; DM.render(); } })))));
-  DM.act('prod-cols', (el) => DM.menu(el, PC.filter((c) => c.id !== 'sr').map((c) => ({ label: c.label, icon: ui.hide[c.id] ? 'eye' : 'check', run: () => { ui.hide[c.id] = !ui.hide[c.id]; DM.render(); } }))));
-  DM.input('prod-q', (v) => { ui.q = v; DM.render(); });
+  DM.act('prod-row', (el) => { const r = curRows.find((x) => x.rid === el.dataset.arg); if (!r) return; if (r.kind === 'style') { ui.open[r.key] = !ui.open[r.key]; ui.nf = true; ui.just = ui.open[r.key] ? r.key : null; ui.mode = Object.values(ui.open).some(Boolean) ? (buildStyles().every((x) => ui.open[x.key]) ? 'expanded' : ui.mode) : 'collapsed'; DM.render(); } else DM.go('/products/' + r.pid); });
+  DM.act('prod-mode', (el) => { ui.nf = true; ui.mode = el.dataset.arg; ui.open = {}; if (ui.mode === 'expanded') buildStyles().forEach((r) => (ui.open[r.key] = true)); DM.render(); });
+  DM.act('prod-vmenu', (el) => DM.menu(el, [{ label: 'All styles', check: ui.cat === 'All' && ui.status === 'all', run: () => { ui.cat = 'All'; ui.status = 'all'; DM.render(); } }, { label: 'Active styles', check: ui.status === 'active', run: () => { ui.status = 'active'; ui.cat = 'All'; DM.render(); } }, { label: 'Draft styles', check: ui.status === 'draft', run: () => { ui.status = 'draft'; ui.cat = 'All'; DM.render(); } }, { sep: 1 }, { heading: 'Category' }].concat(cats().slice(1).map((c) => ({ label: c, check: ui.cat === c, run: () => { ui.cat = c; ui.status = 'all'; DM.render(); } })))));
+  DM.act('prod-cols', (el) => DM.menu(el, PC.filter((c) => c.id !== 'sr').map((c) => ({ label: c.label, check: !ui.hide[c.id], run: () => { ui.hide[c.id] = !ui.hide[c.id]; const api = DM._gridApis && DM._gridApis[0]; if (api) api.setColumnsVisible([c.label], !ui.hide[c.id]); const n = Object.values(ui.hide).filter(Boolean).length; el.innerHTML = `${I('columns')} Columns${n ? ' · ' + n + ' off' : ''}`; } }))));
+  DM.input('prod-q', (v) => { ui.q = v; ui.nf = true; DM.render(); });
   DM.act('prod-clear', () => { ui.q = ''; ui.cat = 'All'; ui.status = 'all'; DM.render(); });
   DM.act('prod-cats', () => {
     const list = () => cats().slice(1).map((c) => `<div class="row" style="padding:6px 0;border-bottom:1px solid var(--border)"><input class="input" style="max-width:260px" data-cat-old="${esc(c)}" value="${esc(c)}"><span class="muted sm grow">${prods().filter((p) => p.category === c).length} products</span><button class="btn ghost icon sm" data-cat-del="${esc(c)}" title="Delete">${I('trash')}</button></div>`).join('');
@@ -98,7 +103,7 @@
     if (!(+d.price > 0)) return DM.toast('Enter a price greater than 0', 'alert');
     if (prods().some((p) => p.sku === d.sku.trim())) return DM.toast('A product with this SKU exists', 'alert');
     const p = { id: DM.uid('pr'), sku: d.sku.trim(), name: d.name.trim(), category: d.category || 'Uncategorised', brand: d.brand, unit: d.unit, price: +d.price, mrp: +d.mrp || +d.price, stock: +d.stock || 0, hsn: d.hsn, tax: +d.tax, status: d.status, attrs: {}, variants: [] };
-    prods().unshift(p); DM.toast('Product created'); DM.go('/products/' + p.id);
+    p._new = 1; setTimeout(() => { delete p._new; }, 2600); prods().unshift(p); DM.toast('Product created'); DM.go('/products/' + p.id);
   });
 
   /* ───── detail ───── */

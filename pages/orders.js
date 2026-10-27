@@ -14,11 +14,12 @@
   .ord-tl{position:relative;padding-left:22px}.ord-tl:before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:var(--border)}
   .ord-tl .ev{position:relative;padding:0 0 14px}.ord-tl .ev:before{content:"";position:absolute;left:-21px;top:3px;width:12px;height:12px;border-radius:50%;background:#fff;border:2px solid var(--border)}
   .ord-tl .ev.done:before{background:var(--success);border-color:var(--success)}
-  .ord-err{background:var(--destructive-tint);color:#b42318;border-radius:9px;padding:9px 12px;font-size:12.5px}
+  .ord-err{background:var(--destructive-tint);color:#b42318;border-radius:9px;padding:9px 12px;font-size:12px}
   .dw-h{padding:18px 20px 10px}.dw-h .t{display:flex;gap:10px;align-items:center}.dw-h h2{font-size:15px;font-weight:600}
   .dw-tabs{padding:4px 20px 12px}.dw-b{padding:0 20px 18px;overflow:auto;flex:1;min-height:0}
   .dw-b .sect{margin:18px 0 8px}
   .dw-f{border-top:1px solid var(--border);padding:10px 16px;display:flex;gap:8px;align-items:center;background:#fff;border-radius:0 0 0 14px}
+  .ord-erp{transition:border-color .3s,box-shadow .3s}.ord-erp.synced.just{box-shadow:0 0 0 4px rgba(19,162,105,.14)}.checkpop{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--success);color:#fff;animation:badge-pop .4s ease both}.checkpop svg.i{width:12px;height:12px}
   .minitbl{width:100%;border-collapse:collapse;font-size:12px}.minitbl th{font-weight:500;color:var(--muted-foreground);text-align:left;padding:7px 8px;border-bottom:1px solid var(--border)}.minitbl td{padding:8px;border-bottom:1px solid #f0f0f0;vertical-align:middle}.minitbl .num{text-align:right;white-space:nowrap}.minitbl td:first-child{min-width:140px}
   `;
   document.head.appendChild(st);
@@ -32,7 +33,12 @@
   const sbadge = (s) => { const [l, t] = STATUS[s] || [s, 'grey']; return DM.status(l, t); };
   const ebadge = (e) => (e ? DM.status(`${e.system} · ${(ERPS[e.state] || [e.state])[0]}`, (ERPS[e.state] || [0, 'grey'])[1]) : DM.status('Not synced', 'grey'));
   const get = (id) => DM.by(DM.S.orders || [], id);
-  const caseNo = (t) => (t ? t.caseNo || t.id : '');
+  const caseNo = (t) => (t ? DM.caseNo(t) : '');
+  // 'pop' once when a value differs from what this surface last showed
+  DM.ui.popSeen = DM.ui.popSeen || {};
+  DM.popIf = DM.popIf || ((key, val) => { const k = key + '|' + DM.uc; const had = k in DM.ui.popSeen; const ch = had && DM.ui.popSeen[k] !== val; DM.ui.popSeen[k] = val; return ch ? 'pop' : ''; });
+  // the person to talk to at a party (photo avatar + name/role)
+  DM.contactRow = (partyId) => { const cs = (DM.S.contacts || []).filter((c) => c.partyId === partyId); const c = cs.find((x) => x.primary) || cs[0]; return c ? `<div class="row" style="margin-top:10px;gap:8px">${DM.avatar(c.name, 'sm')}<div class="grow" style="min-width:0"><div class="sm b trunc">${esc(c.name)}</div><div class="xs muted trunc">${esc(c.role || 'Contact')}${c.phone ? ' · ' + esc(c.phone) : ''}</div></div></div>` : ''; };
 
   /* ERP system for this use case: from orders / erpLog / connected apps */
   DM.erpSystem = () => {
@@ -55,7 +61,7 @@
     let w = document.getElementById('drawer-wrap');
     if (w && w.dataset.key === key) { const d = w.querySelector('.drawer'); const sc = d.querySelector('.dw-b'); const top = sc ? sc.scrollTop : 0; d.style.animation = 'none'; d.innerHTML = html; const nb = d.querySelector('.dw-b'); if (nb) nb.scrollTop = top; return w; }
     DM.closeDrawer(); w = document.createElement('div'); w.id = 'drawer-wrap'; w.dataset.key = key;
-    w.innerHTML = `<div class="drawer" style="display:flex;flex-direction:column">${html}</div>`;
+    w.innerHTML = `<div class="drawer" style="display:flex;flex-direction:column;width:min(640px,96vw)">${html}</div>`;
     w.addEventListener('mousedown', (e) => { if (e.target === w) DM.closeDrawer(); });
     document.body.appendChild(w); return w;
   };
@@ -64,12 +70,13 @@
 
   /* columns popover that really toggles columns */
   DM.colsMenu = (anchor, all, hidden, after) => {
-    document.querySelectorAll('.menu').forEach((m) => m.remove());
-    const r = anchor.getBoundingClientRect(); const m = document.createElement('div'); m.className = 'menu';
-    const draw = () => { m.innerHTML = all.map((c) => `<button data-c="${esc(c.id)}"><span class="chk ${hidden.includes(c.id) ? '' : 'on'}">${hidden.includes(c.id) ? '' : I('check').replace('class="i "', 'class="i" style="width:10px;height:10px"')}</span>${esc(c.label)}</button>`).join(''); };
-    draw(); m.style.top = r.bottom + 4 + 'px'; m.style.left = Math.max(8, Math.min(r.left, innerWidth - 220)) + 'px';
-    m.addEventListener('click', (e) => { const b = e.target.closest('[data-c]'); if (!b) return; const id = b.dataset.c; const i = hidden.indexOf(id); if (i >= 0) hidden.splice(i, 1); else if (all.length - hidden.length > 1) hidden.push(id); draw(); after(); });
-    document.body.appendChild(m);
+    const act = anchor.dataset.act;
+    const open = (instant) => {
+      const a = document.querySelector(`[data-act="${act}"]`) || anchor;
+      DM.menu(a, [{ heading: 'Toggle columns' }, ...all.map((c) => ({ label: c.label, check: !hidden.includes(c.id), run: () => { const i = hidden.indexOf(c.id); if (i >= 0) hidden.splice(i, 1); else if (all.length - hidden.length > 1) hidden.push(c.id); after(); setTimeout(() => open(true), 0); } }))]);
+      if (instant) { const m = document.querySelector('.menu'); if (m) m.style.animation = 'none'; }
+    };
+    open(false);
   };
 
   /* ───────── actions that mutate ───────── */
@@ -123,11 +130,12 @@
     const sys = DM.erpSystem(); const drafts = DM.S.drafts || []; const orders = DM.S.orders || []; const log = DM.S.erpLog || [];
     const needs = drafts.filter((d) => d.status === 'pending'); const flag = needs.reduce((a, d) => a + (d.lines || []).filter((l) => l.state === 'flagged').length, 0);
     const awaiting = orders.filter((o) => o.status !== 'cancelled' && (!o.erp || o.erp.state === 'pending')).length; const failed = orders.filter((o) => o.erp && o.erp.state === 'failed').length;
-    const stats = `<div class="grid g4" style="margin-bottom:14px">
-      ${DM.statCard('Needs review', needs.length, needs.length ? `${flag} flagged line${flag === 1 ? '' : 's'}` : 'Queue clear', 'file')}
-      ${DM.statCard('Draft orders', drafts.length, `${drafts.filter((d) => d.status === 'posted').length} posted as orders`, 'clipboard')}
-      ${DM.statCard('Confirmed orders', orders.length, fmt.inrc(orders.reduce((a, o) => a + (o.status === 'cancelled' ? 0 : o.total), 0)), 'package')}
-      ${DM.statCard(`${sys} sync`, awaiting, failed ? `${failed} failed` : awaiting ? 'waiting to post' : 'All caught up', 'refresh', { tone: failed ? 'down' : awaiting ? '' : 'up' })}</div>`;
+    const flashD = DM.changedRows('drafts', drafts, (d) => d.status + '|' + (d.lines || []).length + '|' + d.total); const flashO = DM.changedRows('orders', orders, (o) => o.status + '|' + (o.erp && o.erp.state) + '|' + o.payment + '|' + o.total);
+    const stats = `<div class="grid g4 stagger" style="margin-bottom:14px">
+      ${DM.statCard('Needs review', DM.cnt(needs.length), needs.length ? `${flag} flagged line${flag === 1 ? '' : 's'}` : 'Queue clear', 'file')}
+      ${DM.statCard('Draft orders', DM.cnt(drafts.length), `${drafts.filter((d) => d.status === 'posted').length} posted as orders`, 'clipboard')}
+      ${DM.statCard('Confirmed orders', DM.cnt(orders.length), fmt.inrc(orders.reduce((a, o) => a + (o.status === 'cancelled' ? 0 : o.total), 0)), 'package')}
+      ${DM.statCard(`${sys} sync`, DM.cnt(awaiting), failed ? `${failed} failed` : awaiting ? 'waiting to post' : 'All caught up', 'refresh', { tone: failed ? 'down' : awaiting ? '' : 'up' })}</div>`;
     const seg = DM.seg([{ key: 'draft', label: 'Draft orders', count: drafts.length }, { key: 'confirmed', label: 'Confirmed orders', count: orders.length }, { key: 'sync', label: `${sys} sync log`, count: log.length }], view, 'os-seg');
     const curView = view === 'draft' ? V.dview : V.cview; const list = view === 'draft' ? DM.draftViews : CVIEWS; const viewLabel = (list.find((x) => x[0] === curView) || list[0])[1];
     const left = `${view === 'sync' ? '' : `<button class="btn outline sm" data-act="os-views">${I('grid')} ${esc(viewLabel)} ${I('chevD')}</button>`}${seg}`;
@@ -136,10 +144,10 @@
     let body;
     if (view === 'draft') {
       const rows = DM.draftRows(V.dview, V.q); const cols = DM.draftCols().filter((c) => !V.hid.draft.includes(c.id));
-      body = rows.length ? DM.table(cols, rows, { click: 'dr-open', pageSize: 50, offset: 372 }) : DM.empty('inbox', V.dview === 'pending' ? 'Nothing waiting on you' : 'No draft orders here', V.dview === 'pending' ? 'New drafts from conversations show up here.' : 'Try another view or clear the search.');
+      body = rows.length ? DM.table(cols, rows, { click: 'dr-open', pageSize: 50, offset: 372, rowCls: (r) => (flashD.has(r.id) ? 'row-new' : '') }) : DM.empty('inbox', V.dview === 'pending' ? 'Nothing waiting on you' : 'No draft orders here', V.dview === 'pending' ? 'New drafts from conversations show up here.' : 'Try another view or clear the search.');
     } else if (view === 'confirmed') {
       const rows = DM.orderRows(V.cview, V.q); const cols = DM.orderCols(sys).filter((c) => !V.hid.confirmed.includes(c.id));
-      body = rows.length ? DM.table(cols, rows, { click: 'ord-open', pageSize: 50, offset: 372 }) : DM.empty('clipboard', 'No orders match', 'Try another view or clear the search.');
+      body = rows.length ? DM.table(cols, rows, { click: 'ord-open', pageSize: 50, offset: 372, rowCls: (r) => (flashO.has(r.id) ? 'row-new' : '') }) : DM.empty('clipboard', 'No orders match', 'Try another view or clear the search.');
     } else body = syncLog();
     const foot = view === 'sync' ? '' : `<div class="xs muted" style="margin-top:8px">${view === 'draft' ? DM.draftRows(V.dview, V.q).length + ' draft orders in view' : DM.orderRows(V.cview, V.q).length + ' orders in view'}</div>`;
     return `<div class="page wide">${DM.header('Orders', view === 'draft' ? 'Orders Anuma assembled from conversations — review, correct and post.' : view === 'confirmed' ? `Confirmed orders across every channel, synced to ${esc(sys)}.` : `Every call Anuma made to ${esc(sys)}, with the request and response.`, `${DM.btn('Export', 'ord-export', { cls: 'outline', icon: 'download' })}${DM.btn('New order', 'dr-new', { icon: 'plus' })}`)}${stats}${DM.toolbar(left, right)}${body}${foot}</div>`;
@@ -175,17 +183,17 @@
 
   /* ERP sync panel (used by order drawer, order page and draft drawer) */
   function erpPanel(o) {
-    const sys = (o.erp && o.erp.system) || DM.erpSystem(); const e = o.erp; const log = (DM.S.erpLog || []).find((l) => l.orderId === o.id);
+    const sys = (o.erp && o.erp.system) || DM.erpSystem(); const e = o.erp; const pop = DM.popIf('erp:' + o.id, e ? e.state : 'none'); const log = (DM.S.erpLog || []).find((l) => l.orderId === o.id);
     if (!e) return `<div class="card ord-erp pending"><div class="ord-erp-h"><div class="ord-erp-ic" style="background:${sysColor(sys)}">${esc(sys[0])}</div><div class="grow"><div class="b">${esc(sys)}</div><div class="xs muted">Not pushed yet</div></div>${DM.status('Not synced', 'grey')}</div><div style="padding:0 16px 14px"><p class="sm muted" style="margin-bottom:10px">This order hasn’t been posted to ${esc(sys)}. Post it now to create the ${/coral/i.test(sys) ? 'sales order' : 'sales voucher'}.</p>${DM.btn(`Push to ${esc(sys)}`, 'ord-push', { arg: o.id, icon: 'upload' })}</div></div>`;
     const ep = log ? { method: log.method, endpoint: log.endpoint } : endpointFor(sys, o);
     const req = log ? log.request : payloadFor(sys, o); const res = log ? log.response : null;
-    return `<div class="card ord-erp ${e.state}"><div class="ord-erp-h"><div class="ord-erp-ic" style="background:${sysColor(sys)}">${esc(sys[0])}</div><div class="grow"><div class="b">${esc(sys)} sync</div><div class="xs muted">${e.at ? 'Last attempt ' + fmt.dt(e.at) : ''}</div></div>${DM.status((ERPS[e.state] || [e.state])[0], (ERPS[e.state] || [0, 'grey'])[1])}</div>
+    return `<div class="card ord-erp ${e.state} ${pop ? 'just' : ''}"><div class="ord-erp-h"><div class="ord-erp-ic" style="background:${sysColor(sys)}">${esc(sys[0])}</div><div class="grow"><div class="b">${esc(sys)} sync</div><div class="xs muted">${e.at ? 'Last attempt ' + fmt.dt(e.at) : ''}</div></div>${e.state === 'synced' && pop ? `<span class="checkpop">${I('check')}</span>` : ''}<span class="${pop}">${DM.status((ERPS[e.state] || [e.state])[0], (ERPS[e.state] || [0, 'grey'])[1])}</span></div>
       <div style="padding:0 16px 16px" class="col">
         <dl class="kv" style="grid-template-columns:90px 1fr"><dt>Reference</dt><dd class="mono">${esc(e.ref || '—')}</dd><dt>Endpoint</dt><dd class="mono xs" style="word-break:break-all"><b>${esc(ep.method)}</b> ${esc(ep.endpoint)}</dd><dt>HTTP</dt><dd>${log ? DM.status(String(log.status), log.status < 300 ? 'green' : 'red') : '—'}</dd></dl>
         ${e.state === 'failed' ? `<div class="ord-err"><b>Sync failed.</b> ${esc(e.error || (res && res.message) || 'The server did not respond in time.')}</div>` : ''}
-        ${e.state === 'pending' ? `<div class="row sm muted">${I('refresh')} Waiting for ${esc(sys)} to acknowledge…</div>` : ''}
+        ${e.state === 'pending' ? `<div class="row sm muted">${I('refresh').replace('class="i "', 'class="i spin"')} Waiting for ${esc(sys)} to acknowledge…</div>` : ''}
         ${jsonTabs({ request: req, response: res || { status: 'pending' } })}
-        ${e.state !== 'synced' ? DM.btn(e.state === 'failed' ? 'Retry sync' : 'Sync now', 'ord-retry', { arg: o.id, icon: 'refresh' }) : DM.btn('Re-sync', 'ord-retry', { arg: o.id, icon: 'refresh', cls: 'outline' })}
+        ${e.state === 'pending' ? DM.btn('Syncing…', '', { icon: 'refresh', attrs: 'disabled' }).replace('class="i "', 'class="i spin"') : e.state !== 'synced' ? DM.btn(e.state === 'failed' ? 'Retry sync' : 'Sync now', 'ord-retry', { arg: o.id, icon: 'refresh' }) : DM.btn('Re-sync', 'ord-retry', { arg: o.id, icon: 'refresh', cls: 'outline' })}
       </div></div>`;
   }
   DM.erpPanel = erpPanel;
@@ -206,9 +214,9 @@
     const p = DM.by(DM.S.parties || [], o.partyId) || {}; const th = o.threadId && DM.by(DM.S.threads || [], o.threadId); const sh = o.shipmentId && DM.by(DM.S.shipments || [], o.shipmentId);
     const { sub, gst } = totals(o); const i = FLOW.indexOf(o.status); const cancelled = o.status === 'cancelled'; const sys = (o.erp && o.erp.system) || DM.erpSystem();
     let body = '';
-    if (DW.tab === 'overview') body = `<div class="grid g3">${DM.statCard('Total', fmt.inr(o.total), `GST ${fmt.inr(gst)}`, 'rupee')}${DM.statCard('Lines', (o.lines || []).length, `${fmt.num((o.lines || []).reduce((a, l) => a + (l.qty || 0), 0))} units`, 'package')}${DM.statCard('Payment', o.payment, o.payment === 'Paid' ? 'Settled' : 'Open', 'receipt')}</div>
-      <div class="sect">Party</div><div class="card pad"><div class="row">${DM.avatar(p.name || '?', 'lg')}<div class="grow"><a class="b" href="#/crm/accounts/${esc(o.partyId)}">${esc(p.name || '—')}</a><div class="xs muted">${esc(p.city || '')}${p.terms ? ' · ' + esc(p.terms) : ''}</div></div>${th ? `<a class="monotag" href="#/inbox/threads?case=${esc(th.id)}">${I('chat')} ${esc(caseNo(th))}</a>` : ''}</div>
-      <dl class="kv" style="grid-template-columns:100px 1fr;margin-top:12px"><dt>GSTIN</dt><dd class="mono xs">${esc(p.gstin || '—')}</dd><dt>Phone</dt><dd>${esc(p.phone || '—')}</dd><dt>Placed</dt><dd>${fmt.dt(o.placedAt)}</dd></dl></div>
+    if (DW.tab === 'overview') body = `<div class="grid g3">${DM.statCard('Total', DM.cnt(o.total, 'inr'), `GST ${fmt.inr(gst)}`, 'rupee')}${DM.statCard('Lines', DM.cnt((o.lines || []).length), `${fmt.num((o.lines || []).reduce((a, l) => a + (l.qty || 0), 0))} units`, 'package')}${DM.statCard('Payment', o.payment, o.payment === 'Paid' ? 'Settled' : 'Open', 'receipt')}</div>
+      <div class="sect">Party</div><div class="card pad"><div class="row">${DM.avatar(p.name || '?', 'lg', { org: true })}<div class="grow"><a class="b" href="#/crm/accounts/${esc(o.partyId)}">${esc(p.name || '—')}</a><div class="xs muted">${esc(p.city || '')}${p.terms ? ' · ' + esc(p.terms) : ''}</div></div>${th ? `<a class="monotag" href="#/inbox/threads?case=${esc(th.id)}">${I('chat')} ${esc(caseNo(th))}</a>` : ''}</div>
+      <dl class="kv" style="grid-template-columns:100px 1fr;margin-top:12px"><dt>GSTIN</dt><dd class="mono xs">${esc(p.gstin || '—')}</dd><dt>Phone</dt><dd>${esc(p.phone || '—')}</dd><dt>Placed</dt><dd>${fmt.dt(o.placedAt)}</dd></dl>${DM.contactRow(o.partyId)}</div>
       <div class="sect">Shipment</div><div class="card pad">${sh ? `<div class="row"><b class="sm">${esc(sh.carrier)}</b><span class="mono xs">${esc(sh.awb)}</span><span class="right">${DM.status(String(sh.status).replace('_', ' '), sh.status === 'delivered' ? 'green' : 'blue')}</span></div><div class="xs muted" style="margin-top:4px">ETA ${fmt.date(sh.eta)}</div>` : `<div class="row"><span class="sm muted grow">No shipment yet.</span>${cancelled ? '' : DM.btn('Create shipment', 'ord-shipment', { arg: o.id, cls: 'outline sm', icon: 'truck' })}</div>`}</div>
       ${o.payment !== 'Paid' && !cancelled ? `<div style="margin-top:12px">${DM.btn('Mark as paid', 'ord-pay', { arg: o.id, cls: 'outline sm', icon: 'check' })}</div>` : ''}`;
     else if (DW.tab === 'lines') body = `<table class="minitbl"><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th></tr></thead><tbody>${(o.lines || []).map((l) => `<tr><td><div class="b">${esc(l.name)}</div><div class="xs muted">${esc((DM.by(DM.S.products || [], l.productId) || {}).sku || '')}</div></td><td class="num mono">${l.qty} ${esc(l.unit || '')}</td><td class="num mono">${fmt.inr(l.price)}</td><td class="num mono">${fmt.inr(l.qty * l.price)}</td></tr>`).join('')}</tbody></table>
@@ -216,7 +224,7 @@
     else if (DW.tab === 'activity') body = `<div class="ord-tl">${events(o).map((e, k) => `<div class="ev done"><div class="sm b">${esc(e.text)}</div>${e.at ? `<div class="xs muted">${fmt.dt(e.at)}</div>` : ''}</div>`).join('')}</div>`;
     else body = erpPanel(o);
     DM.sheet('ord:' + id, {
-      title: `<div class="row">${DM.mono(o.no)}${sbadge(o.status)}</div><div class="sm muted" style="margin-top:4px">${esc(pn(o.partyId))}</div>`,
+      title: `<div class="row">${DM.mono(o.no)}<span class="${DM.popIf('ordst:' + o.id, o.status)}">${sbadge(o.status)}</span></div><div class="sm muted" style="margin-top:4px">${esc(pn(o.partyId))}</div>`,
       headRight: `<a class="btn ghost icon sm" href="#/orders/${esc(o.id)}" title="Open full page">${I('ext')}</a>`,
       tabs: [{ key: 'overview', label: 'Overview' }, { key: 'lines', label: 'Lines' }, { key: 'activity', label: 'Activity' }, { key: 'erp', label: 'ERP' }], tab: DW.tab, body,
       footer: `${!cancelled && i >= 0 && i < FLOW.length - 1 ? DM.btn('Mark ' + STATUS[FLOW[i + 1]][0].toLowerCase(), 'ord-advance', { arg: o.id, icon: 'arrowR', cls: 'sm' }) : ''}${!cancelled && o.status !== 'delivered' ? DM.btn('Cancel order', 'ord-cancel', { arg: o.id, cls: 'outline sm' }) : ''}`,
@@ -234,13 +242,13 @@
     const acts = `${th ? DM.btn('Open chat', '', { cls: 'outline', go: '/inbox/threads?case=' + th.id, icon: 'chat' }) : ''}${!cancelled && i < FLOW.length - 1 ? DM.btn('Mark ' + STATUS[FLOW[i + 1]][0].toLowerCase(), 'ord-advance', { arg: o.id, icon: 'arrowR' }) : ''}${!cancelled && o.status !== 'delivered' ? DM.btn('Cancel', 'ord-cancel', { arg: o.id, cls: 'outline' }) : ''}`;
     return `<div class="page wide"><div class="row sm muted" style="margin-bottom:8px"><a href="#/orders" class="row">${I('chevL')} Orders</a></div>
       ${DM.header(`${DM.mono(o.no)} ${sbadge(o.status)} ${ebadge(o.erp)}`, `${esc(pn(o.partyId))} · placed ${fmt.dt(o.placedAt)} via ${esc(o.channel || '—')}`, acts)}
-      <div class="grid g3" style="margin-bottom:14px">${DM.statCard('Total', fmt.inr(o.total), `GST ${fmt.inr(gst)}`, 'rupee')}${DM.statCard('Lines', (o.lines || []).length, `${fmt.num((o.lines || []).reduce((a, l) => a + (l.qty || 0), 0))} units`, 'package')}${DM.statCard('Payment', o.payment, o.payment === 'Paid' ? 'Settled' : 'Open', 'receipt')}</div>
+      <div class="grid g3" style="margin-bottom:14px">${DM.statCard('Total', DM.cnt(o.total, 'inr'), `GST ${fmt.inr(gst)}`, 'rupee')}${DM.statCard('Lines', DM.cnt((o.lines || []).length), `${fmt.num((o.lines || []).reduce((a, l) => a + (l.qty || 0), 0))} units`, 'package')}${DM.statCard('Payment', o.payment, o.payment === 'Paid' ? 'Settled' : 'Open', 'receipt')}</div>
       <div class="ord-grid"><div class="col" style="gap:14px">
         <div class="card"><div class="card-h"><h3 class="grow">Lines</h3><span class="muted sm">${(o.lines || []).length} lines</span></div><div style="padding:4px 12px 12px"><table class="minitbl"><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th></tr></thead><tbody>${(o.lines || []).map((l) => `<tr><td><div class="b">${esc(l.name)}</div><div class="xs muted">${esc((DM.by(DM.S.products || [], l.productId) || {}).sku || '')}</div></td><td class="num mono">${l.qty} ${esc(l.unit || '')}</td><td class="num mono">${fmt.inr(l.price)}</td><td class="num mono">${fmt.inr(l.qty * l.price)}</td></tr>`).join('')}</tbody></table>
           <div class="col" style="align-items:flex-end;gap:3px;margin-top:12px"><div class="row sm"><span class="muted" style="width:90px">Subtotal</span><span class="mono">${fmt.inr(sub)}</span></div><div class="row sm"><span class="muted" style="width:90px">GST</span><span class="mono">${fmt.inr(gst)}</span></div><div class="row b" style="font-size:15px"><span style="width:90px">Total</span><span class="mono">${fmt.inr(o.total)}</span></div></div></div></div>
         <div class="card pad"><h3 style="margin-bottom:12px">Timeline</h3>${cancelled ? `<div class="ord-err">Order cancelled.</div>` : `<div class="ord-tl">${events(o).map((e) => `<div class="ev done"><div class="sm b">${esc(e.text)}</div>${e.at ? `<div class="xs muted">${fmt.dt(e.at)}</div>` : ''}</div>`).join('')}</div>`}</div>
       </div><div class="col" style="gap:14px">${erpPanel(o)}
-        <div class="card pad"><h3 style="margin-bottom:10px">Party</h3><div class="row" style="margin-bottom:10px">${DM.avatar(p.name || '?', 'lg')}<div><a class="b" href="#/crm/accounts/${esc(o.partyId)}">${esc(p.name || '—')}</a><div class="xs muted">${esc(p.city || '')} · ${esc(p.terms || '')}</div></div></div><dl class="kv" style="grid-template-columns:90px 1fr"><dt>GSTIN</dt><dd class="mono xs">${esc(p.gstin || '—')}</dd><dt>Phone</dt><dd>${esc(p.phone || '—')}</dd></dl></div>
+        <div class="card pad"><h3 style="margin-bottom:10px">Party</h3><div class="row" style="margin-bottom:10px">${DM.avatar(p.name || '?', 'lg', { org: true })}<div><a class="b" href="#/crm/accounts/${esc(o.partyId)}">${esc(p.name || '—')}</a><div class="xs muted">${esc(p.city || '')} · ${esc(p.terms || '')}</div></div></div><dl class="kv" style="grid-template-columns:90px 1fr"><dt>GSTIN</dt><dd class="mono xs">${esc(p.gstin || '—')}</dd><dt>Phone</dt><dd>${esc(p.phone || '—')}</dd></dl>${DM.contactRow(o.partyId)}</div>
         <div class="card pad"><h3 style="margin-bottom:10px">Payment</h3><div class="row">${DM.status(o.payment, o.payment === 'Paid' ? 'green' : o.payment === 'Credit' ? 'blue' : 'amber')}<span class="right b mono">${fmt.inr(o.total)}</span></div>${o.payment !== 'Paid' ? `<div style="margin-top:10px">${DM.btn('Mark as paid', 'ord-pay', { arg: o.id, cls: 'outline sm', icon: 'check' })}</div>` : ''}</div>
         <div class="card pad"><h3 style="margin-bottom:10px">Shipment</h3>${sh ? `<div class="sm"><b>${esc(sh.carrier)}</b> · <span class="mono">${esc(sh.awb)}</span></div><div class="row" style="margin:6px 0">${DM.status(String(sh.status).replace('_', ' '), sh.status === 'delivered' ? 'green' : 'blue')}<span class="xs muted">ETA ${fmt.date(sh.eta)}</span></div>${DM.btn('Track', '', { go: '/fulfilment?s=' + sh.id, cls: 'outline sm', icon: 'truck' })}` : `<p class="sm muted" style="margin-bottom:10px">No shipment yet.</p>${cancelled ? '' : DM.btn('Create shipment', 'ord-shipment', { arg: o.id, cls: 'outline sm', icon: 'truck' })}`}</div>
       </div></div></div>`;
@@ -249,7 +257,7 @@
   function parent() {
     const by = {}; (DM.S.orders || []).forEach((o) => { (by[o.partyId] = by[o.partyId] || []).push(o); });
     return `<div class="page">${DM.header('Parent orders', 'Orders grouped by party account.', DM.btn('All orders', '', { cls: 'outline', go: '/orders' }))}
-      <div class="col" style="gap:12px">${Object.entries(by).map(([pid, os]) => `<div class="card"><div class="card-h">${DM.avatar(pn(pid), 'sm')}<a class="b grow" href="#/crm/accounts/${esc(pid)}">${esc(pn(pid))}</a><span class="muted sm">${os.length} orders · <b class="mono">${fmt.inr(os.reduce((a, o) => a + o.total, 0))}</b></span></div>${os.slice(0, 5).map((o) => `<div class="listrow" data-go="/orders/${o.id}"><span style="width:130px">${DM.mono(o.no)}</span><span class="grow muted sm">${fmt.date(o.placedAt)}</span>${sbadge(o.status)}<span class="mono sm" style="width:90px;text-align:right">${fmt.inr(o.total)}</span></div>`).join('')}</div>`).join('') || DM.empty('clipboard', 'No orders', '')}</div></div>`;
+      <div class="col" style="gap:12px">${Object.entries(by).map(([pid, os]) => `<div class="card"><div class="card-h">${DM.avatar(pn(pid), 'sm', { org: true })}<a class="b grow" href="#/crm/accounts/${esc(pid)}">${esc(pn(pid))}</a><span class="muted sm">${os.length} orders · <b class="mono">${fmt.inr(os.reduce((a, o) => a + o.total, 0))}</b></span></div>${os.slice(0, 5).map((o) => `<div class="listrow" data-go="/orders/${o.id}"><span style="width:130px">${DM.mono(o.no)}</span><span class="grow muted sm">${fmt.date(o.placedAt)}</span>${sbadge(o.status)}<span class="mono sm" style="width:90px;text-align:right">${fmt.inr(o.total)}</span></div>`).join('')}</div>`).join('') || DM.empty('clipboard', 'No orders', '')}</div></div>`;
   }
 
   DM.page('/orders', { title: 'Orders', crumb: 'Orders', render: DM.ordersScreen('confirmed') });

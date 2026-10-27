@@ -14,20 +14,20 @@
   st.textContent = `
   .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
   .askbar{display:flex;gap:8px;align-items:center;border:1px solid var(--border);border-radius:12px;padding:6px 6px 6px 14px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-  .askbar input{flex:1;border:0;outline:0;font-size:14px;height:32px;background:transparent}
-  .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:999px;padding:4px 11px;font-size:12.5px;background:#fff;color:#404040;transition:background .14s}
+  .askbar input{flex:1;border:0;outline:0;font-size:13px;height:32px;background:transparent}
+  .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:999px;padding:4px 11px;font-size:12px;background:#fff;color:#404040;transition:background .14s,transform .1s}.chip:active{transform:scale(.97)}
   .chip:hover{background:var(--muted)}
   .tl{position:relative;padding-left:18px}.tl::before{content:"";position:absolute;left:5px;top:6px;bottom:6px;width:1px;background:var(--border)}
-  .tl .it{position:relative;padding:6px 0;font-size:13px}.tl .it::before{content:"";position:absolute;left:-17px;top:11px;width:9px;height:9px;border-radius:50%;background:#fff;border:2px solid var(--chart-2)}
-  .alert{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;border:1px solid var(--border);cursor:pointer;font-size:13px}.alert:hover{background:var(--hover-cream)}
+  .tl .it{position:relative;padding:6px 0;font-size:12px}.tl .it::before{content:"";position:absolute;left:-17px;top:11px;width:9px;height:9px;border-radius:50%;background:#fff;border:2px solid var(--chart-2)}
+  .alert{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;border:1px solid var(--border);cursor:pointer;font-size:12px;transition:background .14s,transform .14s}.alert:hover{transform:translateY(-1px)}.alert:hover{background:var(--hover-cream)}
   .alert.amber{background:var(--warning-tint);border-color:#f6e7a7}.alert.red{background:var(--destructive-tint);border-color:#fccfc8}.alert.blue{background:var(--info-tint);border-color:var(--info-border)}.alert.green{background:var(--success-tint);border-color:#cdeebd}
   .askwrap{display:flex;flex-direction:column;height:100%;min-height:0}.askmsgs{flex:1;overflow:auto;padding:24px 0}
   .askcol{max-width:760px;margin:0 auto;padding:0 20px;width:100%}
-  .amsg{display:flex;gap:12px;margin-bottom:18px}.amsg.u{justify-content:flex-end}.amsg.u .bubble{background:var(--muted);border-radius:14px;padding:8px 13px;max-width:80%}
+  .amsg{display:flex;gap:12px;margin-bottom:18px}.amsg-new{animation:anuma-rise .32s cubic-bezier(.22,.8,.24,1) both}.amsg.u{justify-content:flex-end}.amsg.u .bubble{background:var(--muted);border-radius:14px;padding:8px 13px;max-width:80%}
   .amsg .av{width:26px;height:26px;display:grid;place-items:center;flex:none}
   .dots i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#a3a3a3;margin-right:3px;animation:bl 1s infinite}.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
   @keyframes bl{0%,80%,100%{opacity:.25}40%{opacity:1}}
-  .gsnav{display:flex;flex-direction:column;gap:2px}.gsstep{display:flex;gap:10px;align-items:center;padding:9px 10px;border-radius:9px;font-size:13.5px}.gsstep.on{background:var(--muted);font-weight:500}.gsstep:hover{background:var(--muted)}
+  .gsnav{display:flex;flex-direction:column;gap:2px}.gsstep{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:9px;font-size:12px;transition:background .14s}.gsstep.on{background:var(--muted);font-weight:500}.gsstep:hover{background:var(--muted)}
   .gsstep .n{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border);display:grid;place-items:center;font-size:11px;background:#fff}.gsstep.done .n{background:#171717;color:#fff;border-color:#171717}
   .rcard{display:flex;gap:12px;padding:14px;cursor:pointer;align-items:flex-start;transition:border-color .14s}.rcard:hover{border-color:#bdbdbd}.rcard.on{border-color:#171717;box-shadow:0 0 0 1px #171717 inset}
   .ico{width:34px;height:34px;border-radius:9px;background:var(--muted);display:grid;place-items:center;flex:none}
@@ -39,7 +39,47 @@
   .cardgrid .card-h{border-bottom:1px solid var(--border)}.cardgrid .dmgrid .ag-root-wrapper,.card>.dmgrid .ag-root-wrapper{border:0;border-radius:0}.cardgrid .dmgrid,.card>.dmgrid{border-radius:0 0 14px 14px}
   .hempty{display:flex;flex-direction:column;align-items:center;padding:34px 16px;gap:4px;text-align:center}
   .nrow{display:flex;gap:12px;padding:13px 16px;border-bottom:1px solid var(--border);cursor:pointer;align-items:flex-start}.nrow:last-child{border-bottom:0}.nrow:hover{background:var(--hover-cream)}`;
+  st.textContent += `
+  .wrow.row-new{animation:anuma-rise .35s cubic-bezier(.22,.8,.24,1) both,row-flash 1.8s ease both}
+  .nrow.row-new{animation:anuma-rise .35s cubic-bezier(.22,.8,.24,1) both,row-flash 1.8s ease both}
+  .nrow,.wrow{transition:background-color .14s}
+  @keyframes dm-spin{to{transform:rotate(360deg)}}.spin{animation:dm-spin .8s linear infinite}
+  .pop{animation:badge-pop .35s ease both}
+  .skel-ov{position:absolute;inset:0;background:#fff;z-index:6;overflow:hidden;border-radius:10px;transition:opacity .25s}.skel-ov.out{opacity:0}
+  .skel-ov .sr{height:40px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:20px;padding:0 12px}.skel-ov .sr.h{background:#fafafa}
+  .skel-ov .sr i{display:block;height:9px;border-radius:5px}
+  .hover-card{transition:transform .15s,box-shadow .15s}.hover-card:hover{transform:translateY(-1px);box-shadow:0 0 0 1px rgba(10,10,10,.14),0 6px 16px rgba(0,0,0,.06)}
+  .rcard:hover{transform:translateY(-1px)}`;
   document.head.appendChild(st);
+
+  /* ───────── shared motion helpers (also used by orders / rfqs / fulfilment) ───────── */
+  const FMT = { inr: F.inr, inrc: F.inrc, pct: (x) => Math.round(x) + '%', num: (x) => F.num(Math.round(x)) };
+  // number that counts up to n (core animates [data-count])
+  DM.cnt = DM.cnt || ((n, f = 'num', ck) => { const v = +n || 0; return `<span data-count="${v}" data-fmt="${f}"${ck ? ` data-ck="${ck}"` : ''}>${(FMT[f] || FMT.num)(v)}</span>`; });
+  // which ids are new / changed since this surface last rendered (first visit flashes nothing)
+  DM.ui.rowsSeen = DM.ui.rowsSeen || {};
+  DM.changedRows = DM.changedRows || ((key, rows, sig = (r) => '', idk = 'id') => { const k = key + '|' + DM.uc; const prev = DM.ui.rowsSeen[k]; const cur = {}; const out = new Set(); rows.forEach((r) => { const id = r[idk]; cur[id] = sig(r); if (prev && prev[id] !== cur[id]) out.add(id); }); DM.ui.rowsSeen[k] = cur; return out; });
+  // case numbers DDMMYY-n (same scheme the Inbox uses) so every page shows the same tag
+  const msx = (x) => { const v = typeof x === 'number' ? x : Date.parse(x); return isNaN(v) ? null : v; };
+  const firstAtX = (t) => { const m = (t.messages || []).find((x) => msx(x.at) != null); return m ? m.at : t.lastAt; };
+  let tagM = { k: '', m: {} };
+  DM.caseNo = DM.caseNo || ((t) => {
+    if (!t) return ''; const th = DM.S.threads || []; const key = th.map((x) => x.id + (firstAtX(x) || '')).join('|');
+    if (tagM.k !== key) { const L = th.map((x) => ({ x, at: msx(firstAtX(x)) ?? 0 })).sort((a, b) => a.at - b.at); const cnt = {}, out = {}; L.forEach(({ x, at }) => { const dk = new Date(at).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); cnt[dk] = (cnt[dk] || 0) + 1; const [y, mo, d] = dk.split('-'); out[x.id] = d + mo + y.slice(2) + '-' + cnt[dk]; }); tagM = { k: key, m: out }; }
+    return tagM.m[t.id] || String(t.caseNo || t.id);
+  });
+  // 400ms shimmer skeleton over every AG Grid the first time a route is opened
+  const skelDone = new Set();
+  DM.afterHooks.push((root) => {
+    const key = DM.path() + '|' + DM.uc; const grids = root.querySelectorAll('.dmgrid'); if (!grids.length || skelDone.has(key)) return; skelDone.add(key);
+    const w = [90, 160, 70, 120, 80, 100, 140, 60];
+    grids.forEach((el) => {
+      el.style.position = 'relative'; const ov = document.createElement('div'); ov.className = 'skel-ov';
+      const row = (h) => `<div class="sr ${h ? 'h' : ''}">${[0, 1, 2, 3, 4].map((c) => `<i class="shimmer" style="width:${w[(c * 3 + (h ? 0 : 1) + Math.floor(Math.random() * 3)) % w.length]}px"></i>`).join('')}</div>`;
+      ov.innerHTML = row(true) + Array.from({ length: Math.min(10, Math.ceil(el.clientHeight / 40)) }, () => row(false)).join('');
+      el.appendChild(ov); setTimeout(() => { ov.classList.add('out'); setTimeout(() => ov.remove(), 260); }, 420);
+    });
+  });
 
   /* ───────── derived data ───────── */
   const activeOrders = () => arr('orders').filter((o) => o.status !== 'cancelled');
@@ -118,7 +158,7 @@
   const me = () => { const u = arr('users').find((x) => /owner|admin/i.test(x.role)) || arr('users')[0]; return u ? u.id : null; };
   const mineParty = (pid) => hm.who === 'all' || (party(pid) || {}).owner === me();
   const mineThread = (t) => hm.who === 'all' || t.owner === me() || (party(t.partyId) || {}).owner === me();
-  const caseNo = (t) => { if (t.caseNo) return t.caseNo; const d = new Date(ts(t.lastAt) + IST); const y = isNaN(d) ? '' : String(d.getUTCFullYear()).slice(2) + String(d.getUTCMonth() + 1).padStart(2, '0') + String(d.getUTCDate()).padStart(2, '0'); return (y || '000000') + '-' + (String(t.id).replace(/\D/g, '').slice(-1) || '1'); };
+  const caseNo = (t) => DM.caseNo(t);
   const captured = () => arr('orders').filter((o) => o.status !== 'cancelled').map((o) => ({ at: ts(o.placedAt), o, partyId: o.partyId })).concat(arr('drafts').filter((d) => !['posted', 'rejected'].includes(d.status)).map((d) => ({ at: ts(d.createdAt), o: d, partyId: d.partyId }))).filter((x) => mineParty(x.partyId));
   const inWin = (t, a, b) => t >= a && t < b;
   const fmtDur = (sec) => (sec < 90 ? Math.round(sec) + 's' : sec < 5400 ? Math.floor(sec / 60) + 'm ' + String(Math.round(sec % 60)).padStart(2, '0') + 's' : (sec / 3600).toFixed(1) + 'h');
@@ -140,14 +180,14 @@
   function waitingList() {
     const hand = arr('threads').filter((t) => mineThread(t) && t.owner && t.owner !== 'anuma' && t.status !== 'closed').sort((a, b) => ts(a.lastAt) - ts(b.lastAt));
     if (!hand.length) return DM.empty('inbox', 'Nothing waiting on you', 'New hand-offs to the team show up here.');
-    return `<div class="card">${hand.slice(0, 6).map((t) => { const p = party(t.partyId), u = user(t.owner), mins = Math.max(0, Math.round((NOW.getTime() - ts(t.lastAt)) / 60000) - 15), over = mins > 0, dur = mins >= 1440 ? Math.floor(mins / 1440) + 'd' : mins >= 60 ? Math.floor(mins / 60) + 'h ' + String(mins % 60).padStart(2, '0') + 'm' : mins + 'm'; return `<div class="listrow wrow" data-go="/inbox/threads?case=${esc(t.id)}">${DM.mono(caseNo(t))}<div class="grow" style="min-width:0"><div class="b trunc">${esc(p.name)}</div><div class="xs muted trunc">${esc(t.preview || t.subject || '')}</div></div>${over ? `<span class="slapill">${I('clock')} ${dur} over</span>` : `<span class="xs muted">within SLA</span>`}${DM.avatar(u.name, 'sm')}</div>`; }).join('')}</div>`;
+    return `<div class="card">${hand.slice(0, 6).map((t) => { const p = party(t.partyId), u = user(t.owner), mins = Math.max(0, Math.round((NOW.getTime() - ts(t.lastAt)) / 60000) - 15), over = mins > 0, dur = mins >= 1440 ? Math.floor(mins / 1440) + 'd' : mins >= 60 ? Math.floor(mins / 60) + 'h ' + String(mins % 60).padStart(2, '0') + 'm' : mins + 'm'; return `<div class="listrow wrow" data-rid="${esc(t.id)}" data-go="/inbox/threads?case=${esc(t.id)}">${DM.mono(caseNo(t))}<div class="grow" style="min-width:0"><div class="b trunc">${esc(p.name)}</div><div class="xs muted trunc">${esc(t.preview || t.subject || '')}</div></div>${over ? `<span class="slapill">${I('clock')} ${dur} over</span>` : `<span class="xs muted">within SLA</span>`}<span style="display:inline-flex;align-items:center;gap:6px" title="${esc(u.name)}">${DM.avatar(u.name, 'sm')}<span class="xs muted">${esc(String(u.name).split(' ')[0])}</span></span></div>`; }).join('')}</div>`;
   }
   function buyersCards(st) {
     const by = {}, pr = {};
     st.cur.forEach((x) => { const n = party(x.partyId).name; (by[n] = by[n] || { name: n, orders: 0, value: 0 }); by[n].orders++; by[n].value += +x.o.total || 0; (x.o.lines || []).forEach((l) => { (pr[l.name] = pr[l.name] || { name: l.name, qty: 0, orders: 0, unit: l.unit }); pr[l.name].qty += +l.qty || 0; pr[l.name].orders++; }); });
     const B = Object.values(by).sort((a, b) => b.value - a.value), P = Object.values(pr).sort((a, b) => b.qty - a.qty);
     const wrap = (title, body) => `<div class="card cardgrid"><div class="card-h"><b>${title}</b></div>${body}</div>`;
-    return `<div class="grid g2">${wrap('Buyers', B.length ? DM.table([{ label: 'Party', render: (r) => `<b>${esc(r.name)}</b>` }, { label: 'Orders', num: true, w: '100px', render: (r) => r.orders }, { label: 'Value', num: true, w: '120px', render: (r) => F.inr(r.value) }], B.slice(0, 8), { noPager: true }) : `<div class="hempty">${DM.icoTile('inbox', 'lg')}<div class="b">No orders this ${hm.range === 'custom' ? 'period' : 'day'}</div><div class="muted sm">Buyers show up here as orders come in.</div></div>`)}${wrap('Products they bought', P.length ? DM.table([{ label: 'Product', render: (r) => esc(r.name) }, { label: 'Qty', num: true, w: '110px', render: (r) => F.num(r.qty) + (r.unit ? ' ' + esc(r.unit) : '') }, { label: 'Orders', num: true, w: '100px', render: (r) => r.orders }], P.slice(0, 8), { noPager: true }) : `<div class="hempty">${DM.icoTile('package', 'lg')}<div class="b">No products this ${hm.range === 'custom' ? 'period' : 'day'}</div><div class="muted sm">Products show up here as orders come in.</div></div>`)}</div>`;
+    return `<div class="grid g2">${wrap('Buyers', B.length ? DM.table([{ label: 'Party', render: (r) => `<span class="row" style="gap:8px">${DM.avatar(r.name, 'sm', { org: true })}<b class="trunc">${esc(r.name)}</b></span>` }, { label: 'Orders', num: true, w: '100px', render: (r) => r.orders }, { label: 'Value', num: true, w: '120px', render: (r) => F.inr(r.value) }], B.slice(0, 8), { noPager: true }) : `<div class="hempty">${DM.icoTile('inbox', 'lg')}<div class="b">No orders this ${hm.range === 'custom' ? 'period' : 'day'}</div><div class="muted sm">Buyers show up here as orders come in.</div></div>`)}${wrap('Products they bought', P.length ? DM.table([{ label: 'Product', render: (r) => esc(r.name) }, { label: 'Qty', num: true, w: '110px', render: (r) => F.num(r.qty) + (r.unit ? ' ' + esc(r.unit) : '') }, { label: 'Orders', num: true, w: '100px', render: (r) => r.orders }], P.slice(0, 8), { noPager: true }) : `<div class="hempty">${DM.icoTile('package', 'lg')}<div class="b">No products this ${hm.range === 'custom' ? 'period' : 'day'}</div><div class="muted sm">Products show up here as orders come in.</div></div>`)}</div>`;
   }
   DM.page('/dashboard', {
     title: 'Home',
@@ -155,14 +195,14 @@
     render() {
       const st = homeStats(), w = st.w;
       const none = (l) => `<span class="muted">${l}</span>`;
-      return `<div class="page fadein">
+      return `<div class="page stagger">
         <div class="ph"><div><h1>Home</h1><p>${new Date(NOW).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' })} · <span class="livedot"><i></i>Live</span></p></div>
           <div class="acts">${DM.seg([{ key: 'mine', label: 'Yours' }, { key: 'all', label: 'Everyone' }], hm.who, 'home-who')}${DM.seg([{ key: 'today', label: 'Today' }, { key: 'yesterday', label: 'Yesterday' }, { key: 'custom', label: hm.range === 'custom' ? rangeLabel() + ' ✎' : 'Custom ✎' }], hm.range, 'home-range')}</div></div>
         <div class="sect">${hm.range === 'custom' ? 'Selected period' : rangeLabel()}</div><div class="sub">Orders captured and hand-offs to the team, compared with ${w.label}.</div>
-        <div class="grid g3">${stat('Orders', F.num(st.orders[0]), delta(st.orders, w), { icon: 'clipboard' })}${stat('Line items', F.num(st.lines[0]), delta(st.lines, w), { icon: 'package' })}${stat('Escalations', F.num(st.esc[0]), st.esc[0] || st.esc[1] ? delta(st.esc, w) : '', { icon: 'alert' })}</div>
+        <div class="grid g3 stagger">${stat('Orders', DM.cnt(st.orders[0]), delta(st.orders, w), { icon: 'clipboard' })}${stat('Line items', DM.cnt(st.lines[0]), delta(st.lines, w), { icon: 'package' })}${stat('Escalations', DM.cnt(st.esc[0]), st.esc[0] || st.esc[1] ? delta(st.esc, w) : '', { icon: 'alert' })}</div>
         <div class="sect">Waiting</div><div class="sub">Customers Order Desk has handed to you, most overdue first.</div>${waitingList()}
         <div class="sect">Replies</div><div class="sub">How fast customers hear back, from Order Desk and from the team.</div>
-        <div class="grid g3">${stat('Team reply', st.team == null ? '—' : fmtDur(st.team), st.team == null ? 'No team replies measured' : `Average over ${st.nTeam} repl${st.nTeam > 1 ? 'ies' : 'y'}`, { icon: 'clock' })}${stat('Order Desk reply', st.desk == null ? '—' : fmtDur(st.desk), st.desk == null ? 'No Order Desk replies measured' : `Average over ${st.nDesk} repl${st.nDesk > 1 ? 'ies' : 'y'}`, { icon: 'sparkle' })}${stat('Within 15 min', st.within == null ? '—' : Math.round(st.within) + '%', st.within == null ? 'No answered cases' : `Of ${st.nAll} answered messages`, { icon: 'check' })}</div>
+        <div class="grid g3 stagger">${stat('Team reply', st.team == null ? '—' : fmtDur(st.team), st.team == null ? 'No team replies measured' : `Average over ${st.nTeam} repl${st.nTeam > 1 ? 'ies' : 'y'}`, { icon: 'clock' })}${stat('Order Desk reply', st.desk == null ? '—' : fmtDur(st.desk), st.desk == null ? 'No Order Desk replies measured' : `Average over ${st.nDesk} repl${st.nDesk > 1 ? 'ies' : 'y'}`, { icon: 'sparkle' })}${stat('Within 15 min', st.within == null ? '—' : DM.cnt(st.within, 'pct'), st.within == null ? 'No answered cases' : `Of ${st.nAll} answered messages`, { icon: 'check' })}</div>
         <div class="sect">Your buyers</div><div class="sub">What the accounts you look after ordered.</div>${buyersCards(st)}
       </div>`;
     },
@@ -192,10 +232,10 @@
       const all = arr('notifications');
       const list = all.filter((n) => (n.tab || 'human') === nui.tab);
       const cnt = (t) => all.filter((n) => (n.tab || 'human') === t).length;
-      return `<div class="page fadein">
+      return `<div class="page">
         ${DM.header('Notifications', 'Things that need a human, and what your agents did.', `${DM.btn('Mark all read', 'notif-readall', { cls: 'outline', icon: 'check' })}`)}
         <div style="margin-bottom:12px">${DM.seg([{ key: 'human', label: 'Humans', count: cnt('human') }, { key: 'agent', label: 'Agents', count: cnt('agent') }], nui.tab, 'notif-tab')}</div>
-        ${list.length ? `<div class="card">${list.map((n) => `<div class="nrow" data-act="notif-open" data-arg="${esc(n.id)}">${DM.icoTile(nIcon(n))}<div class="grow" style="min-width:0"><div class="row"><b>${esc(n.subject)}</b><span class="muted xs">· ${esc(n.from || 'Anuma')}</span><span class="grow"></span><span class="xs muted">${esc(String(n.at).length > 8 ? F.dt(n.at) : n.at || '')}</span>${n.unread ? '<i class="udot"></i>' : ''}</div><div class="sm muted" style="margin-top:2px">${esc(n.body || '')}</div></div></div>`).join('')}</div>` : DM.empty('bell', 'You are all caught up', nui.tab === 'human' ? 'Hand-offs and assignments show up here.' : 'What your agents did shows up here.')}
+        ${list.length ? `<div class="card">${list.map((n) => `<div class="nrow" data-rid="${esc(n.id)}" data-act="notif-open" data-arg="${esc(n.id)}">${DM.icoTile(nIcon(n))}<div class="grow" style="min-width:0"><div class="row"><b>${esc(n.subject)}</b><span class="muted xs">· ${esc(n.from || 'Anuma')}</span><span class="grow"></span><span class="xs muted">${esc(String(n.at).length > 8 ? F.dt(n.at) : n.at || '')}</span>${n.unread ? '<i class="udot"></i>' : ''}</div><div class="sm muted" style="margin-top:2px">${esc(n.body || '')}</div></div></div>`).join('')}</div>` : DM.empty('bell', 'You are all caught up', nui.tab === 'human' ? 'Hand-offs and assignments show up here.' : 'What your agents did shows up here.')}
       </div>`;
     },
   });
@@ -251,13 +291,13 @@
       const pre = q.get('q'); if (pre && !aui.seen[pre]) { aui.seen[pre] = 1; setTimeout(() => askSend(pre), 50); }
       return `<div class="page-full askwrap"><div class="askmsgs"><div class="askcol">
         ${aui.msgs.length ? '' : `<div style="text-align:center;padding:40px 0 20px"><div class="icotile" style="margin:0 auto 12px;background:#171717;color:#fff;width:44px;height:44px;border-radius:12px">${I('sparkle')}</div><h1 style="font-size:22px;font-weight:600">Ask Anuma</h1><p class="muted" style="margin-top:4px">Questions are answered from this workspace's live data.</p></div>`}
-        ${aui.msgs.map((m) => m.r === 'u' ? `<div class="amsg u"><div class="bubble">${m.t}</div></div>` : `<div class="amsg"><div class="av">${DM.mark(26)}</div><div class="grow" style="font-size:14px">${m.t}</div></div>`).join('')}
+        ${aui.msgs.map((m, k) => m.r === 'u' ? `<div class="amsg u ${k >= (aui.shown || 0) ? 'amsg-new' : ''}"><div class="bubble">${m.t}</div></div>` : `<div class="amsg ${k >= (aui.shown || 0) ? 'amsg-new' : ''}"><div class="av">${DM.mark(26)}</div><div class="grow" style="font-size:13px">${m.t}</div></div>`).join('')}
         ${aui.typing ? `<div class="amsg"><div class="av">${DM.mark(26)}</div><div class="dots" style="padding-top:8px"><i></i><i></i><i></i></div></div>` : ''}
       </div></div>
       <div class="askcol" style="padding-bottom:18px"><div class="row wrap" style="margin-bottom:10px;gap:6px">${SUGGEST.map((c) => `<button class="chip" data-act="ask-chip" data-arg="${esc(c)}">${esc(c)}</button>`).join('')}${aui.msgs.length ? `<button class="chip right" data-act="ask-clear">${I('rotate')} New chat</button>` : ''}</div>
       <div class="askbar">${I('sparkle')}<input data-input="ask-text" placeholder="Ask about orders, parties, stock…" value="${esc(aui.text)}"><button class="btn sm" data-act="ask-go" ${aui.typing ? 'disabled' : ''}>${I('send')}</button></div></div></div>`;
     },
-    after(v) { const m = v.querySelector('.askmsgs'); if (m) m.scrollTop = m.scrollHeight; },
+    after(v) { const m = v.querySelector('.askmsgs'); if (m) m.scrollTo({ top: m.scrollHeight, behavior: 'smooth' }); aui.shown = aui.msgs.length; },
   };
   DM.page('/ask', askPage); DM.page('/ask/:id', askPage);
   DM.input('ask-text', (v) => { aui.text = v; });
@@ -277,7 +317,7 @@
   const gs = (DM.ui.gs = DM.ui.gs || { done: new Set(['import']), src: 'file', progress: 0, ch: { whatsapp: true, email: false, indiamart: false }, car: { shiprocket: true, delhivery: false, bluedart: false }, floor: 80, timer: 30, hitl: { price: true, newparty: true, credit: true, photo: false }, live: false });
   function gsShell(key, body) {
     const i = GS.findIndex((s) => s.key === key), cur = GS[i], nxt = GS[i + 1], prv = GS[i - 1];
-    return `<div class="page fadein"><div class="grid" style="grid-template-columns:240px minmax(0,1fr);align-items:start">
+    return `<div class="page"><div class="grid" style="grid-template-columns:240px minmax(0,1fr);align-items:start">
       <div class="card pad"><div class="b" style="margin-bottom:2px">Getting started</div><div class="xs muted" style="margin-bottom:10px">${gs.done.size} of ${GS.length} complete</div><div class="bar" style="margin-bottom:10px"><i style="width:${(gs.done.size / GS.length) * 100}%"></i></div>
       <div class="gsnav">${GS.map((s, k) => `<a class="gsstep ${s.key === key ? 'on' : ''} ${gs.done.has(s.key) ? 'done' : ''}" href="#/getting-started/${s.key}"><span class="n">${gs.done.has(s.key) ? I('check').replace('class="i "', 'class="i" style="width:12px;height:12px"') : k + 1}</span>${esc(s.label)}</a>`).join('')}</div></div>
       <div class="card pad"><div class="row" style="margin-bottom:4px"><div class="icotile">${I(cur.icon)}</div><div><h3 style="font-size:16px">${esc(cur.label)}</h3><div class="sm muted">${esc(cur.sub)}</div></div></div><div class="sep"></div>${body}
@@ -299,7 +339,7 @@
     return gsShell('make-sense', `<div class="grid g2"><div><div class="xs muted b" style="margin-bottom:6px">WHAT THE CUSTOMER SENT</div><div class="card pad" style="background:var(--chat-wallpaper);white-space:pre-wrap;font-size:13px">${esc(sample)}</div></div><div><div class="xs muted b" style="margin-bottom:6px">WHAT ANUMA READ</div>${lines.length ? DM.table([{ label: 'Item', render: (l) => esc(l.name || l.text) }, { label: 'Qty', num: true, render: (l) => esc(l.qty + ' ' + (l.unit || '')) }, { label: 'Match', render: (l) => DM.badge(l.confidence != null ? l.confidence + '%' : l.state, l.state === 'matched' ? 'green' : 'amber') }], lines) : '<div class="empty">Parsed lines appear here once RFQs arrive.</div>'}</div></div><div class="row" style="margin-top:12px">${DM.btn('Looks right', 'toast', { cls: 'outline', arg: 'Thanks — Anuma will keep learning from corrections', icon: 'check' })}${DM.btn('Something is off', 'toast', { cls: 'outline', arg: 'Noted — a human will review similar messages', icon: 'flag' })}</div>`);
   } });
   DM.page('/getting-started/shipping', { title: 'Shipping', crumb: 'Getting started', render() {
-    return gsShell('shipping', `<div class="col">${[['shiprocket', 'Shiprocket'], ['delhivery', 'Delhivery'], ['bluedart', 'Blue Dart']].map(([k, l]) => `<div class="card pad row"><div class="avatar" style="background:${DM.color(l)}">${l[0]}</div><div class="grow"><div class="b sm">${l}</div><div class="xs muted">${gs.car[k] ? 'Enabled for all pincodes' : 'Not enabled'}</div></div>${DM.switch(gs.car[k], 'gs-car', k)}</div>`).join('')}</div><div class="grid g2" style="margin-top:14px">${DM.field('Default pickup address', 'addr', { value: (S().company || {}).address || '' })}${DM.field('Free shipping above (₹)', 'free', { type: 'number', value: 25000 })}</div>`);
+    return gsShell('shipping', `<div class="col">${[['shiprocket', 'Shiprocket'], ['delhivery', 'Delhivery'], ['bluedart', 'Blue Dart']].map(([k, l]) => `<div class="card pad row">${DM.avatar(l, '', { org: true })}<div class="grow"><div class="b sm">${l}</div><div class="xs muted">${gs.car[k] ? 'Enabled for all pincodes' : 'Not enabled'}</div></div>${DM.switch(gs.car[k], 'gs-car', k)}</div>`).join('')}</div><div class="grid g2" style="margin-top:14px">${DM.field('Default pickup address', 'addr', { value: (S().company || {}).address || '' })}${DM.field('Free shipping above (₹)', 'free', { type: 'number', value: 25000 })}</div>`);
   } });
   DM.page('/getting-started/govern', { title: 'Rules', crumb: 'Getting started', render() {
     const rules = [['price', 'A price differs from the price list'], ['newparty', 'The sender is not a known party'], ['credit', 'The order would exceed the credit limit'], ['photo', 'A photo cannot be matched to a product']];
@@ -333,8 +373,8 @@
     const won = arr('leads').filter((l) => l.stage === 'Won').length, tot = arr('leads').length || 1;
     const ag = arr('agents');
     const auto = ag.length ? Math.round(sum(ag, (a) => (a.kpis || {}).autoRate) / ag.length) : 0;
-    return `<div class="page fadein">${DM.header('Insights', 'How demand is turning into revenue.', DM.btn('Export', 'ins-export', { cls: 'outline', icon: 'download' }))}
-      <div class="kpis" style="margin-bottom:14px">${stat('Win rate', F.pct((won / tot) * 100), `${won} of ${tot} deals`, { icon: 'star' })}${stat('Automation rate', F.pct(auto), 'handled without a human', { icon: 'bot' })}${stat('Avg order value', F.inrc(L.orders ? L.orderValue / L.orders : 0), F.num(L.orders) + ' orders', { icon: 'rupee' })}${stat('Quoted', F.inrc(L.quoted), L.quotesPending + ' awaiting approval', { icon: 'receipt' })}</div>
+    return `<div class="page">${DM.header('Insights', 'How demand is turning into revenue.', DM.btn('Export', 'ins-export', { cls: 'outline', icon: 'download' }))}
+      <div class="kpis stagger" style="margin-bottom:14px">${stat('Win rate', DM.cnt((won / tot) * 100, 'pct'), `${won} of ${tot} deals`, { icon: 'star' })}${stat('Automation rate', DM.cnt(auto, 'pct'), 'handled without a human', { icon: 'bot' })}${stat('Avg order value', DM.cnt(L.orders ? L.orderValue / L.orders : 0, 'inrc'), F.num(L.orders) + ' orders', { icon: 'rupee' })}${stat('Quoted', DM.cnt(L.quoted, 'inrc'), L.quotesPending + ' awaiting approval', { icon: 'receipt' })}</div>
       <div class="grid g3"><div class="card pad"><h3 style="margin-bottom:8px">Conversations by channel</h3><div class="row" style="gap:16px">${DM.chart.donut(chItems.length ? chItems : [{ l: '-', v: 1 }])}<div class="col sm" style="gap:5px">${chItems.map((c) => `<div class="row"><span class="grow">${esc(c.l)}</span><b class="mono">${c.v}</b></div>`).join('')}</div></div></div>
       <div class="card pad"><h3 style="margin-bottom:10px">Catalogue by category</h3>${DM.chart.hbars(catItems)}</div>
       <div class="card pad"><h3 style="margin-bottom:10px">Pipeline stages</h3>${DM.chart.hbars(funnelSeries())}</div></div>
@@ -353,7 +393,7 @@
   };
   DM.page('/reports', { title: 'Reports', crumb: 'Reports', render() {
     const R = REPORTS[rui.cur], rows = R.rows();
-    return `<div class="page wide fadein">${DM.header('Reports', 'Pick a report, filter, and download it.', `${DM.pills([{ key: '7d', label: '7d' }, { key: '30d', label: '30d' }, { key: '90d', label: '90d' }, { key: 'all', label: 'All time' }], rui.range, 'rep-range')}${DM.btn('Download CSV', 'rep-dl', { icon: 'download' })}`)}
+    return `<div class="page wide">${DM.header('Reports', 'Pick a report, filter, and download it.', `${DM.pills([{ key: '7d', label: '7d' }, { key: '30d', label: '30d' }, { key: '90d', label: '90d' }, { key: 'all', label: 'All time' }], rui.range, 'rep-range')}${DM.btn('Download CSV', 'rep-dl', { icon: 'download' })}`)}
       <div class="grid" style="grid-template-columns:260px minmax(0,1fr);align-items:start"><div class="col">${Object.entries(REPORTS).map(([k, r]) => `<div class="card rcard ${rui.cur === k ? 'on' : ''}" data-act="rep-pick" data-arg="${k}"><div class="icotile">${I(r.icon)}</div><div><div class="b sm">${r.label}</div><div class="xs muted">${r.sub}</div></div></div>`).join('')}</div>
       <div class="col"><div class="card pad"><div class="row"><h3>${R.label}</h3><span class="xs muted right">${rows.length} rows · ${rui.range}</span></div>${rows.length && typeof rows[0][rows[0].length - 1] === 'number' ? `<div style="margin-top:8px">${DM.chart.hbars(rows.slice(0, 6).map((r) => ({ l: r[0], v: r[r.length - 1] })), { fmt: R.fmt[R.fmt.length - 1] || ((v) => v) })}</div>` : ''}</div>
       ${DM.table(R.cols.map((c, i) => ({ label: c, num: i > 0, render: (r) => { const f = R.fmt[i]; return esc(f ? f(r[i]) : r[i]); } })), rows.map((r) => r.slice()).map((r, i) => Object.assign(r, { id: i })))}</div></div></div>`;
@@ -370,8 +410,8 @@
     const all = prodOrders();
     const rows = pui.tab === 'all' ? all : all.filter((o) => o.status === (pui.tab === 'queue' ? 'confirmed' : pui.tab === 'running' ? 'processing' : 'packed'));
     const n = (s) => all.filter((o) => o.status === s).length;
-    return `<div class="page wide fadein">${DM.header('Production', 'Turn confirmed orders into packed, ready-to-ship work.')}
-      <div class="kpis" style="margin-bottom:14px">${stat('In queue', n('confirmed'), 'confirmed, not started', { icon: 'clock' })}${stat('In production', n('processing'), 'being made / picked', { icon: 'factory' })}${stat('Ready to pack', n('packed'), 'packed', { icon: 'box' })}${stat('Units on floor', F.num(sum(all, (o) => sum(o.lines || [], (l) => l.qty))), '', { icon: 'package' })}</div>
+    return `<div class="page wide">${DM.header('Production', 'Turn confirmed orders into packed, ready-to-ship work.')}
+      <div class="kpis stagger" style="margin-bottom:14px">${stat('In queue', DM.cnt(n('confirmed')), 'confirmed, not started', { icon: 'clock' })}${stat('In production', DM.cnt(n('processing')), 'being made / picked', { icon: 'factory' })}${stat('Ready to pack', DM.cnt(n('packed')), 'packed', { icon: 'box' })}${stat('Units on floor', DM.cnt(sum(all, (o) => sum(o.lines || [], (l) => l.qty))), '', { icon: 'package' })}</div>
       <div style="margin:14px 0 10px">${DM.seg([{ key: 'queue', label: 'Queue', count: n('confirmed') }, { key: 'running', label: 'In production', count: n('processing') }, { key: 'done', label: 'Packed', count: n('packed') }, { key: 'all', label: 'All' }], pui.tab, 'prod-tab')}</div>
       ${DM.table([{ label: 'Order', render: (o) => `<a class="b" href="#/orders/${o.id}" style="text-decoration:underline">${esc(o.no)}</a>` }, { label: 'Party', render: (o) => esc(party(o.partyId).name) }, { label: 'Items', render: (o) => `${(o.lines || []).length} lines · ${sum(o.lines || [], (l) => l.qty)} units` }, { label: 'Progress', render: (o) => `<div class="stagebar" style="width:110px">${STAGES.slice(0, 4).map((s, i) => `<i class="${STAGES.indexOf(o.status) >= i ? 'on' : ''}"></i>`).join('')}</div>` }, { label: 'Status', render: (o) => DM.status(o.status[0].toUpperCase() + o.status.slice(1), o.status === 'processing' ? 'blue' : o.status === 'packed' ? 'green' : 'amber') }, { label: '', render: (o) => o.status === 'confirmed' ? DM.btn('Start', 'prod-adv', { cls: 'sm', arg: o.id }) : o.status === 'processing' ? DM.btn('Mark packed', 'prod-adv', { cls: 'sm outline', arg: o.id }) : DM.btn('Packing slip', null, { cls: 'sm ghost', go: '/packaging/' + o.id }) }], rows, { empty: 'Nothing in this stage.' })}</div>`;
   } });
@@ -380,7 +420,7 @@
 
   DM.page('/packaging', { title: 'Packaging', crumb: 'Packaging', render() {
     const o = arr('orders').filter((x) => ['confirmed', 'processing', 'packed', 'shipped'].includes(x.status));
-    return `<div class="page wide fadein">${DM.header('Packaging', 'Packing slips and box plans for open orders.')}${DM.table([{ label: 'Order', render: (r) => `<b>${esc(r.no)}</b>` }, { label: 'Party', render: (r) => esc(party(r.partyId).name) }, { label: 'Boxes', num: true, render: (r) => Math.max(1, Math.ceil(sum(r.lines || [], (l) => l.qty) / 40)) }, { label: 'Status', render: (r) => DM.badge(r.status, r.status === 'packed' || r.status === 'shipped' ? 'green' : 'amber', true) }], o, { go: (r) => '/packaging/' + r.id, empty: 'No orders to pack.' })}</div>`;
+    return `<div class="page wide">${DM.header('Packaging', 'Packing slips and box plans for open orders.')}${DM.table([{ label: 'Order', render: (r) => `<b>${esc(r.no)}</b>` }, { label: 'Party', render: (r) => esc(party(r.partyId).name) }, { label: 'Boxes', num: true, render: (r) => Math.max(1, Math.ceil(sum(r.lines || [], (l) => l.qty) / 40)) }, { label: 'Status', render: (r) => DM.badge(r.status, r.status === 'packed' || r.status === 'shipped' ? 'green' : 'amber', true) }], o, { go: (r) => '/packaging/' + r.id, empty: 'No orders to pack.' })}</div>`;
   } });
   DM.page('/packaging/:id/edit', { title: 'Edit packing', crumb: 'Packaging', render({ params }) {
     const o = DM.by(arr('orders'), params.id); if (!o) return '<div class="page"><div class="empty">Order not found</div></div>';

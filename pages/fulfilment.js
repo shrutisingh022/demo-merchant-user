@@ -4,12 +4,15 @@
   const st = document.createElement('style'); st.dataset.for = 'fulfilment';
   st.textContent = `
   .ff-alerts{display:flex;gap:10px;overflow:auto;margin-bottom:16px}
-  .ff-alert{display:flex;gap:10px;align-items:center;border:1px solid #f1dca7;background:var(--warning-tint);border-radius:10px;padding:9px 12px;font-size:13px;flex:none;cursor:pointer}
+  .ff-alert{display:flex;gap:10px;align-items:center;border:1px solid #f1dca7;background:var(--warning-tint);border-radius:10px;padding:9px 12px;font-size:12px;flex:none;cursor:pointer;transition:transform .14s}.ff-alert:hover{transform:translateY(-1px)}
   .ff-alert.red{border-color:#f5c2bd;background:var(--destructive-tint)}
   .ff-board{display:grid;grid-template-columns:repeat(4,minmax(220px,1fr));gap:12px;align-items:start;overflow:auto}
   .ff-tl{position:relative;padding-left:22px}.ff-tl:before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:var(--border)}
   .ff-tl .ev{position:relative;padding-bottom:14px}.ff-tl .ev:before{content:"";position:absolute;left:-21px;top:3px;width:12px;height:12px;border-radius:50%;background:var(--success);border:2px solid var(--success)}
   .ff-tl .ev:first-child:before{box-shadow:0 0 0 4px rgba(19,162,105,.18)}
+  .kcard{transition:transform .15s,border-color .15s,box-shadow .15s}.kcard:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.06)}
+  .kcard.row-new{animation:anuma-rise .35s cubic-bezier(.22,.8,.24,1) both,row-flash 1.8s ease both}
+  .ff-prog{height:3px;border-radius:2px;background:var(--muted);margin-top:8px;overflow:hidden}.ff-prog i{display:block;height:100%;background:var(--chart-2);transition:width .6s cubic-bezier(.22,.8,.24,1)}
   `;
   document.head.appendChild(st);
 
@@ -44,23 +47,25 @@
       ...rto.map((s) => `<div class="ff-alert red" data-act="ff-open" data-arg="${s.id}">${I('alert')}<span><b>${esc(s.awb)}</b> is returning to origin — ${esc(pn(s))}</span></div>`),
       ...(unshipped.length ? [`<div class="ff-alert" data-act="ff-new">${I('package')}<span><b>${unshipped.length} order${unshipped.length > 1 ? 's' : ''}</b> without a shipment</span></div>`] : []),
     ];
-    const card = (s) => { const o = order(s.orderId) || {}; return `<div class="kcard" data-act="ff-open" data-arg="${s.id}"><div class="row">${DM.mono(o.no || s.orderId)}${late(s) ? '<span class="badge red right">Delayed</span>' : ''}</div><div class="sm b trunc" style="margin:6px 0 2px">${esc(pn(s))}</div><div class="xs muted">${esc(s.carrier)} · <span class="mono">${esc(s.awb)}</span></div><div class="row xs muted" style="margin-top:6px">${I('map')}<span class="trunc">${esc(s.from)} → ${esc(s.to)}</span></div><div class="xs muted" style="margin-top:4px">ETA ${fmt.date(s.eta)}</div></div>`; };
+    const PROG = { pending: 10, pickup: 35, in_transit: 70, delivered: 100, rto: 100 };
+    const card = (s) => { const o = order(s.orderId) || {}; return `<div class="kcard" data-rid="${s.id}:${s.status}" data-act="ff-open" data-arg="${s.id}"><div class="row">${DM.mono(o.no || s.orderId)}${late(s) ? '<span class="badge red right">Delayed</span>' : ''}</div><div class="sm b trunc" style="margin:6px 0 2px">${esc(pn(s))}</div><div class="xs muted">${esc(s.carrier)} · <span class="mono">${esc(s.awb)}</span></div><div class="row xs muted" style="margin-top:6px">${I('map')}<span class="trunc">${esc(s.from)} → ${esc(s.to)}</span></div><div class="xs muted" style="margin-top:4px">ETA ${fmt.date(s.eta)}</div><div class="ff-prog"><i style="width:${PROG[s.status] || 0}%"></i></div></div>`; };
     const cols = COLS().filter((c) => !U.hid.includes(c.id));
+    const flash = DM.changedRows('ship', all, (s) => s.status + '|' + (s.events || []).length);
     const exc = delayed.length + rto.length;
     const table = U.view === 'table';
     return `<div class="page wide">
       ${DM.header('Fulfilment', 'Track every shipment from warehouse to party.', `${DM.btn('Create shipment', 'ff-new', { icon: 'plus' })}`)}
-      <div class="grid g4" style="margin-bottom:14px">
-        ${DM.statCard('Ready to ship', all.filter((s) => s.status === 'pending').length + unshipped.length, 'orders waiting', 'package')}
-        ${DM.statCard('In transit', all.filter((s) => ['pickup', 'in_transit'].includes(s.status)).length, 'with carriers', 'truck')}
-        ${DM.statCard('Delivered', all.filter((s) => s.status === 'delivered').length, 'this month', 'check', { tone: 'up' })}
-        ${DM.statCard('Exceptions', exc, exc ? 'delayed or returned' : 'None right now', 'alert', { tone: exc ? 'down' : 'up' })}
+      <div class="grid g4 stagger" style="margin-bottom:14px">
+        ${DM.statCard('Ready to ship', DM.cnt(all.filter((s) => s.status === 'pending').length + unshipped.length), 'orders waiting', 'package')}
+        ${DM.statCard('In transit', DM.cnt(all.filter((s) => ['pickup', 'in_transit'].includes(s.status)).length), 'with carriers', 'truck')}
+        ${DM.statCard('Delivered', DM.cnt(all.filter((s) => s.status === 'delivered').length), 'this month', 'check', { tone: 'up' })}
+        ${DM.statCard('Exceptions', DM.cnt(exc), exc ? 'delayed or returned' : 'None right now', 'alert', { tone: exc ? 'down' : 'up' })}
       </div>
       ${alerts.length ? `<div class="ff-alerts">${alerts.join('')}</div>` : ''}
       ${DM.toolbar(`<button class="btn outline sm" data-act="ff-carriers">${I('truck')} ${U.carrier === 'all' ? 'All carriers' : esc(U.carrier)} ${I('chevD')}</button>${DM.seg([{ key: 'board', label: 'Board' }, { key: 'table', label: 'Table' }], U.view, 'ff-view')}`,
         `${table ? `<button class="btn outline sm" data-act="ff-cols">${I('columns')} Columns${U.hid.length ? ' · ' + U.hid.length + ' off' : ''}</button>` : ''}${DM.searchBox('ff-q', 'Search AWB, order, party…', U.q)}`)}
       ${!rows.length ? DM.empty('truck', 'No shipments match', 'Try another carrier or clear the search.')
-        : table ? DM.table(cols, rows, { click: 'ff-open', pageSize: 50, offset: 372 })
+        : table ? DM.table(cols, rows, { click: 'ff-open', pageSize: 50, offset: 372, rowCls: (r) => (flash.has(r.id) ? 'row-new' : '') })
         : `<div class="ff-board">${COLS_B.map(([k, l, t]) => { const cs = rows.filter((s) => s.status === k); return `<div class="kcol"><div class="row" style="padding:2px 4px"><span class="b sm">${l}</span><span class="cnt-chip right">${cs.length}</span></div>${cs.map(card).join('') || '<div class="empty xs" style="padding:20px 0">Nothing here</div>'}</div>`; }).join('')}</div>`}
       <div class="xs muted" style="margin-top:8px">${rows.length} shipments in view</div>
     </div>`;
@@ -77,10 +82,10 @@
     const events = (s.events || []).slice().sort((a, b) => new Date(b.at) - new Date(a.at));
     const body = U.tab === 'overview'
       ? `<div class="grid g3">${DM.statCard('Status', SB[s.status] ? SB[s.status][0] : s.status, s.carrier, 'truck')}${DM.statCard('ETA', fmt.date(s.eta), late(s) ? 'Past due' : 'On schedule', 'calendar', { tone: late(s) ? 'down' : '' })}${DM.statCard('Order value', fmt.inr(o.total), (o.lines || []).length + ' lines', 'rupee')}</div>
-        <div class="sect">Shipment</div><div class="card pad"><dl class="kv"><dt>Order</dt><dd><a class="b" href="#/orders/${esc(s.orderId)}">${esc(o.no || s.orderId)}</a></dd><dt>Party</dt><dd>${esc(pn(s))}</dd><dt>Carrier</dt><dd>${esc(s.carrier)}</dd><dt>AWB</dt><dd class="mono">${esc(s.awb)}</dd><dt>Route</dt><dd>${esc(s.from)} → ${esc(s.to)}</dd>${th ? `<dt>Case</dt><dd><a class="monotag" href="#/inbox/threads?case=${esc(th.id)}">${esc(th.caseNo || th.id)}</a></dd>` : ''}</dl></div>`
+        <div class="sect">Shipment</div><div class="card pad"><dl class="kv"><dt>Order</dt><dd><a class="b" href="#/orders/${esc(s.orderId)}">${esc(o.no || s.orderId)}</a></dd><dt>Party</dt><dd>${esc(pn(s))}</dd><dt>Carrier</dt><dd>${esc(s.carrier)}</dd><dt>AWB</dt><dd class="mono">${esc(s.awb)}</dd><dt>Route</dt><dd>${esc(s.from)} → ${esc(s.to)}</dd>${th ? `<dt>Case</dt><dd><a class="monotag" href="#/inbox/threads?case=${esc(th.id)}">${esc(DM.caseNo(th))}</a></dd>` : ''}</dl></div>`
       : `<div class="ff-tl">${events.map((e) => `<div class="ev"><div class="sm b">${esc(e.text)}</div><div class="xs muted">${fmt.dt(e.at)}</div></div>`).join('') || '<div class="muted sm">No events yet.</div>'}</div>`;
     DM.sheet('ship:' + id, {
-      title: `<div class="row">${DM.mono(s.id)}${sb(s.status)}</div><div class="sm muted" style="margin-top:4px">${esc(pn(s))}</div>`,
+      title: `<div class="row">${DM.mono(s.id)}<span class="${DM.popIf('shst:' + s.id, s.status)}">${sb(s.status)}</span></div><div class="sm muted" style="margin-top:4px">${esc(pn(s))}</div>`,
       tabs: [{ key: 'overview', label: 'Overview' }, { key: 'tracking', label: 'Tracking', count: events.length }], tab: U.tab, body,
       footer: `${next ? DM.btn('Mark ' + SB[next][0].toLowerCase(), 'ff-advance', { arg: s.id, icon: 'arrowR', cls: 'sm' }) : ''}${s.status !== 'delivered' && s.status !== 'rto' ? DM.btn('Mark RTO', 'ff-rto', { arg: s.id, cls: 'outline sm' }) : ''}${DM.btn('Copy AWB', 'toast', { arg: 'AWB copied', cls: 'ghost sm', icon: 'copy' })}`,
     });

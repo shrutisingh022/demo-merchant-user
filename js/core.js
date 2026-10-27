@@ -198,7 +198,7 @@
   DM.setUC = (uc, { go = true } = {}) => {
     if (!DM.ucs[uc]) return;
     DM.uc = uc; try { localStorage.setItem(LS, uc); } catch (e) {}
-    DM.scnStop(); DM.scn.index = -1; DM.resetState();
+    DM.scn.index = -1; DM.scnStop(); DM.resetState();
     if (go && DM.path().startsWith('/inbox')) DM.go('/inbox/threads'); else if (go && DM.path().match(/^\/(orders|leads|quotes|crm|products|agents|workflows)\/.+/)) DM.go('/' + DM.path().split('/')[1]); else DM.render();
   };
 
