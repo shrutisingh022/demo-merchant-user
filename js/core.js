@@ -115,11 +115,47 @@
   DM.pills = (items, cur, act = 'pill') => `<div class="pills">${items.map((t) => { const k = t.key ?? t; const l = t.label ?? t; return `<button class="pill ${k === cur ? 'on' : ''}" data-act="${act}" data-arg="${esc(k)}">${esc(l)}</button>`; }).join('')}</div>`;
   DM.switch = (on, act, arg) => `<button class="switch ${on ? 'on' : ''}" data-act="${act}" data-arg="${esc(arg ?? '')}" role="switch" aria-checked="${!!on}"></button>`;
   DM.searchBox = (id, ph = 'Search…', val = '') => `<div class="search">${I('search')}<input class="input" data-input="${id}" placeholder="${esc(ph)}" value="${esc(val)}"></div>`;
-  // table(cols:[{k,label,num,render(row)}], rows, {click:'act-name', idKey})
+  // table(cols:[{k,label,num,render(row),w,flex}], rows, {go,click,idKey,rowCls,empty,height,pageSize,bar,noPager})
+  // Backed by AG Grid Community (quartz theme restyled in css/app.css). Mounted after render by the afterHook below.
+  DM._grids = []; DM._gridApis = [];
+  const stripHtml = (h) => String(h == null ? '' : h).replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'").replace(/&quot;/g, '"').trim();
   DM.table = (cols, rows, o = {}) => {
-    if (!rows.length) return `<div class="tblwrap"><div class="empty">${esc(o.empty || 'Nothing here yet.')}</div></div>`;
-    return `<div class="tblwrap"><table class="tbl"><thead><tr>${cols.map((c) => `<th class="${c.num ? 'num' : ''}" ${c.w ? `style="width:${c.w}"` : ''}>${esc(c.label)}</th>`).join('')}</tr></thead><tbody>${rows.map((r) => `<tr class="${o.go || o.click ? 'click' : ''} ${o.rowCls ? o.rowCls(r) : ''}" ${o.go ? `data-go="${o.go(r)}"` : ''} ${o.click ? `data-act="${o.click}" data-arg="${esc(r[o.idKey || 'id'])}"` : ''}>${cols.map((c) => `<td class="${c.num ? 'num' : ''}">${c.render ? c.render(r) : esc(r[c.k] ?? '')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+    if (!rows.length) return `<div class="card"><div class="empty">${esc(o.empty || 'Nothing here yet.')}</div></div>`;
+    const id = DM._grids.length; DM._grids.push({ cols, rows, o });
+    const n = rows.length; const pager = !o.noPager && n > (o.pageSize || 25);
+    const h = o.height || (pager ? null : 41 + n * 40 + 2);
+    return `<div class="dmgrid ag-theme-quartz" data-gid="${id}" style="${pager ? 'height:' + (o.height || 'calc(100vh - ' + (o.offset || 330) + 'px)') + ';min-height:320px' : 'height:' + h + 'px'}"></div>`;
   };
+  DM.mountGrids = (root) => {
+    DM._gridApis.forEach((a) => { try { a.destroy(); } catch (e) {} }); DM._gridApis = [];
+    if (!window.agGrid) { root.querySelectorAll('.dmgrid').forEach((el) => { const g = DM._grids[+el.dataset.gid]; if (g) el.outerHTML = `<div class="tblwrap"><table class="tbl"><thead><tr>${g.cols.map((c) => `<th>${esc(c.label)}</th>`).join('')}</tr></thead><tbody>${g.rows.slice(0, 200).map((r) => `<tr>${g.cols.map((c) => `<td>${c.render ? c.render(r) : esc(r[c.k] ?? '')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`; }); return; }
+    root.querySelectorAll('.dmgrid').forEach((el) => {
+      const g = DM._grids[+el.dataset.gid]; if (!g) return; const { cols, rows, o } = g;
+      const pager = !o.noPager && rows.length > (o.pageSize || 25);
+      const api = agGrid.createGrid(el, {
+        rowData: rows, theme: 'legacy', headerHeight: 40, rowHeight: 40, suppressCellFocus: true, animateRows: false,
+        domLayout: pager ? 'normal' : 'autoHeight', pagination: pager, paginationPageSize: o.pageSize || 25, paginationPageSizeSelector: pager ? [10, 25, 50, 100] : false,
+        defaultColDef: { sortable: true, resizable: true, filter: true, suppressHeaderMenuButton: false, minWidth: 70 },
+        columnDefs: cols.map((c) => ({ headerName: c.label, field: c.k, colId: c.k || c.label, type: c.num ? 'rightAligned' : undefined, width: c.w ? parseInt(c.w) : undefined, flex: c.w ? undefined : (c.flex || 1), minWidth: c.w ? parseInt(c.w) : 110,
+          valueGetter: c.k && !c.render ? undefined : (p) => (c.render ? stripHtml(c.render(p.data)) : p.data[c.k]), cellRenderer: c.render ? (p) => { const d = document.createElement('div'); d.className = 'agc'; d.innerHTML = c.render(p.data); return d; } : undefined, comparator: c.num ? (a, b) => parseFloat(String(a).replace(/[^0-9.-]/g, '')) - parseFloat(String(b).replace(/[^0-9.-]/g, '')) : undefined })),
+        rowClassRules: o.rowCls ? { x: (p) => false } : undefined, getRowClass: o.rowCls ? (p) => o.rowCls(p.data) : undefined,
+        onRowClicked: (e) => { if (e.event && e.event.target.closest('button,a,input,select')) return; if (o.go) DM.go(o.go(e.data)); else if (o.click && DM.acts[o.click]) DM.acts[o.click]({ dataset: { arg: e.data[o.idKey || 'id'] }, tagName: 'DIV' }, e.event); },
+        onGridReady: () => {},
+      });
+      DM._gridApis.push(api);
+    });
+  };
+  DM.afterHooks.push((root) => DM.mountGrids(root));
+  // toolbar helper used by data pages: left = view label / segmented, right = columns + search
+  DM.toolbar = (left = '', right = '') => `<div class="toolbar"><div class="row gap12">${left}</div><div class="row gap12 right">${right}</div></div>`;
+  DM.colsBtn = (n = 0) => `<button class="btn outline sm" data-act="cols-menu">${I('columns')} Columns${n ? ' · ' + n + ' off' : ''}</button>`;
+  DM.viewBtn = (label) => `<button class="btn outline sm" data-act="view-menu">${I('grid')} ${esc(label)} ${I('chevD')}</button>`;
+  DM.icoTile = (name, cls = '') => `<span class="icotile ${cls}">${I(name)}</span>`;
+  DM.mono = (t) => `<span class="monotag">${esc(t)}</span>`;
+  DM.status = (label, tone = 'green') => `<span class="stat-badge ${tone}"><i></i>${esc(label)}</span>`;
+  DM.empty = (icon, title, sub) => `<div class="empty-card"><span class="icotile lg">${I(icon)}</span><div class="b" style="margin-top:10px">${esc(title)}</div><div class="muted sm" style="margin-top:2px">${esc(sub || '')}</div></div>`;
+  DM.statCard = (label, value, sub, icon, o = {}) => `<div class="card statc"><div class="statc-h"><span class="grow">${esc(label)}</span>${icon ? `<span class="icotile">${I(icon)}</span>` : ''}</div><div class="statc-d"></div><div class="statc-v mono">${value}</div>${sub != null ? `<div class="statc-s ${o.tone || ''}">${sub}</div>` : ''}</div>`;
+  DM.seg = (items, cur, act) => `<div class="pills">${items.map((t) => { const k = t.key ?? t; const l = t.label ?? t; return `<button class="pill ${k === cur ? 'on' : ''}" data-act="${act}" data-arg="${esc(k)}">${t.icon ? I(t.icon) : ''}${esc(l)}${t.count != null ? ` <span class="cnt-chip">${t.count}</span>` : ''}</button>`; }).join('')}</div>`;
 
   /* ───────── tiny SVG charts ───────── */
   DM.chart = {
@@ -158,7 +194,7 @@
     if (!DM.ucs[uc]) return;
     DM.uc = uc; try { localStorage.setItem(LS, uc); } catch (e) {}
     DM.scnStop(); DM.scn.index = -1; DM.resetState();
-    if (go) DM.go(DM.ucs[uc].home || '/dashboard'); else DM.render();
+    if (go && DM.path().startsWith('/inbox')) DM.go('/inbox/threads'); else if (go && DM.path().match(/^\/(orders|leads|quotes|crm|products|agents|workflows)\/.+/)) DM.go('/' + DM.path().split('/')[1]); else DM.render();
   };
 
   /* ───────── scenario engine ───────── */
@@ -171,7 +207,7 @@
       Object.entries(st.m || {}).forEach(([key, v]) => { (DM.S.history[key] = DM.S.history[key] || []).push(v); });
     }
     const st = U.steps[i];
-    if (st && st.route && DM.scn.navigate !== false) { if (DM.path() !== st.route) DM.go(st.route); else DM.render(); } else DM.render();
+    if (st && st.route && st.route.startsWith('/inbox') && DM.path().startsWith('/inbox')) { if (DM.path() + (location.hash.includes('?') ? '?' + location.hash.split('?')[1] : '') !== st.route) DM.go(st.route); else DM.render(); } else DM.render();
   };
   DM.scnNext = () => { const U = DM.ucs[DM.uc]; if (DM.scn.index < U.steps.length - 1) DM.scnApply(DM.scn.index + 1); else DM.scnStop(); };
   DM.scnPrev = () => { if (DM.scn.index >= 0) DM.scnApply(DM.scn.index - 1); };
@@ -195,61 +231,88 @@
     ['organisation', 'Company', 'building'], ['personal', 'Personal', 'user'], ['navigation', 'Navigation', 'layout'], ['users', 'Humans', 'users'],
     ['rulebook', 'Rulebook', 'book'], ['templates', 'Templates', 'palette'], ['usage', 'Usage', 'gauge'], ['taxes', 'Tax', 'percent'], ['shipping', 'Shipping', 'truck'], ['invoices', 'Invoices', 'receipt'],
   ];
-  DM.NAV = [
-    { items: [
-      { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', url: '/dashboard' },
-      { key: 'inbox', label: 'Inbox', icon: 'inbox', url: '/inbox/threads', prefix: '/inbox', count: () => (DM.S.threads || []).filter((t) => t.unread).length },
-      { key: 'leads', label: 'Deals', icon: 'handshake', url: '/leads', prefix: '/leads' },
+  const NAV_BASE = [
+    { key: 'dashboard', label: 'Home', icon: 'dashboard', url: '/dashboard', prefix: '/dashboard' },
+    { key: 'inbox', label: 'Inbox', icon: 'inbox', url: '/inbox/threads', prefix: '/inbox', count: () => (DM.S.threads || []).filter((t) => t.unread).length },
+    { key: 'orders', label: 'Orders', icon: 'clipboard', url: '/orders/drafts', prefix: '/orders', exclude: ['/orders/rfqs', '/orders/parent'], count: () => (DM.S.drafts || []).filter((d) => d.status === 'pending').length },
+    { key: 'crm', label: 'CRM', icon: 'users', url: '/crm/accounts', prefix: '/crm' },
+    { key: 'products', label: 'Products', icon: 'package', url: '/products', prefix: '/products' },
+  ];
+  const NAV_EXTRA = {
+    rfq: [
       { key: 'rfqs', label: 'RFQs', icon: 'sheet', url: '/orders/rfqs', prefix: '/orders/rfqs', count: () => (DM.S.rfqs || []).filter((r) => ['new', 'review'].includes(r.status)).length },
       { key: 'quotes', label: 'Quotes', icon: 'receipt', url: '/quotes/all', prefix: '/quotes' },
-      { key: 'orders', label: 'Orders', icon: 'clipboard', url: '/orders', prefix: '/orders', exclude: ['/orders/drafts', '/orders/rfqs'] },
-      { key: 'drafts', label: 'Draft orders', icon: 'file', url: '/orders/drafts', prefix: '/orders/drafts', count: () => (DM.S.drafts || []).filter((d) => d.status === 'pending').length },
-      { key: 'crm', label: 'CRM', icon: 'users', url: '/crm/accounts', prefix: '/crm' },
-      { key: 'products', label: 'Products', icon: 'package', url: '/products', prefix: '/products' },
+      { key: 'leads', label: 'Deals', icon: 'handshake', url: '/leads', prefix: '/leads' },
+    ],
+    stuffcool: [
       { key: 'campaigns', label: 'Campaigns', icon: 'megaphone', url: '/campaigns', prefix: '/campaigns' },
       { key: 'fulfilment', label: 'Fulfilment', icon: 'truck', url: '/fulfilment', prefix: '/fulfilment' },
-      { key: 'reports', label: 'Reports', icon: 'chart', url: '/reports', prefix: '/reports' },
-      { key: 'governance', label: 'Governance', icon: 'shield', url: '/governance/policy', prefix: '/governance' },
-    ] },
-    { label: 'Workspace', items: [
-      { key: 'agents', label: 'Agents', icon: 'bot', url: '/agents', prefix: '/agents' },
-      { key: 'workflows', label: 'Workflows', icon: 'workflow', url: '/workflows', prefix: '/workflows' },
-      { key: 'channels', label: 'Channels', icon: 'radio', url: '/settings/channels', prefix: '/settings/channels' },
-      { key: 'apps', label: 'Apps', icon: 'blocks', url: '/settings/integrations', prefix: '/settings/integrations' },
-      { key: 'logs', label: 'Logs', icon: 'history', url: '/settings/logs', prefix: '/settings/logs' },
-      { key: 'settings', label: 'Settings', icon: 'settings', url: '/settings/organisation', prefix: '/settings', menu: SETTINGS_MENU.map(([k, l, ic]) => ({ label: l, icon: ic, url: '/settings/' + k })), exclude: ['/settings/channels', '/settings/integrations', '/settings/logs'] },
-    ] },
+      { key: 'quotes', label: 'Quotes', icon: 'receipt', url: '/quotes/all', prefix: '/quotes' },
+    ],
+    newhome: [
+      { key: 'fulfilment', label: 'Fulfilment', icon: 'truck', url: '/fulfilment', prefix: '/fulfilment' },
+    ],
+  };
+  const WORKSPACE = [
+    { key: 'agents', label: 'Agents', icon: 'bot', url: '/agents', prefix: '/agents' },
+    { key: 'workflows', label: 'Workflows', icon: 'workflow', url: '/workflows', prefix: '/workflows' },
+    { key: 'channels', label: 'Channels', icon: 'radio', url: '/settings/channels', prefix: '/settings/channels' },
+    { key: 'apps', label: 'Apps', icon: 'blocks', url: '/settings/integrations', prefix: '/settings/integrations' },
+    { key: 'logs', label: 'Logs', icon: 'history', url: '/settings/logs', prefix: '/settings/logs' },
+    { key: 'settings', label: 'Settings', icon: 'settings', url: '/settings/organisation', prefix: '/settings', menu: [['organisation', 'Company', 'building'], ['navigation', 'Navigation', 'layout'], ['users', 'Humans', 'users'], ['rulebook', 'Rulebook', 'book'], ['usage', 'Usage', 'gauge']].map(([k, l, ic]) => ({ label: l, icon: ic, url: '/settings/' + k })), exclude: ['/settings/channels', '/settings/integrations', '/settings/logs'] },
   ];
+  Object.defineProperty(DM, 'NAV', { get() {
+    const hidden = (DM.S && DM.S.navHidden) || [];
+    return [{ label: 'Navigate', items: [...NAV_BASE, ...(NAV_EXTRA[DM.uc] || [])].filter((i) => !hidden.includes(i.key)) }, { label: 'Workspace', items: WORKSPACE }];
+  } });
   const flat = () => DM.NAV.flatMap((g) => g.items);
   const activeNav = (path) => { let best = null, bl = -1; for (const it of flat()) { const pre = it.prefix || it.url; if ((path === pre || path.startsWith(pre + '/') || path.startsWith(pre)) && !(it.exclude || []).some((x) => path.startsWith(x)) && pre.length > bl) { best = it; bl = pre.length; } } return best; };
   DM.allDestinations = () => { const out = []; flat().forEach((it) => { out.push({ label: it.label, icon: it.icon, url: it.url }); (it.menu || []).forEach((m) => out.push({ label: 'Settings · ' + m.label, icon: m.icon, url: m.url })); }); out.push({ label: 'Ask Anuma', icon: 'sparkle', url: '/ask' }, { label: 'Notifications', icon: 'bell', url: '/notifications' }, { label: 'Getting started', icon: 'rocket', url: '/getting-started' }, { label: 'Insights', icon: 'chart', url: '/insights' }, { label: 'Production', icon: 'factory', url: '/production' }, { label: 'Packaging', icon: 'box', url: '/packaging' }, { label: 'Approvals', icon: 'check', url: '/governance/approvals' }, { label: 'Rate card', icon: 'tag', url: '/quotes/rate-card' }); return out; };
 
   /* ───────── shell rendering ───────── */
   const shell = () => `
-  <div id="app">
+  <div id="app" class="panel-closed">
     <aside id="rail"></aside>
     <main id="main"><div id="topbar"></div><div id="view"></div></main>
     <aside id="panel"></aside>
   </div><div id="toasts"></div>`;
+  const MARK = `<svg viewBox="0 0 32 32" width="26" height="26"><rect width="32" height="32" rx="8" fill="#0a0a0a"/><circle cx="10.5" cy="16" r="2.3" fill="#fff"/><rect x="15" y="13.8" width="8.5" height="4.4" rx="2.2" fill="#fff"/></svg>`;
+  DM.mark = (n = 26) => MARK.replace(/26/g, n);
 
   function renderRail(path) {
     const act = activeNav(path);
     const rail = document.getElementById('rail');
+    const grp = (g) => `<div class="navgrp">${g.label}</div>${g.items.map((it) => { const on = act && act.key === it.key; const c = it.count ? it.count() : 0; return `<div><a class="navitem ${on ? 'active' : ''}" ${it.menu ? `data-act="settings-menu"` : `href="#${it.url}"`} data-nav="${it.key}">${I(it.icon)}<span class="grow">${it.label}</span>${c ? `<span class="cnt">${c}</span>` : ''}${it.menu ? I(DM.ui.setMenu ? 'chevD' : 'chevU') : ''}</a>${it.menu && DM.ui.setMenu ? `<div class="navmenu">${it.menu.map((m) => `<a href="#${m.url}" class="${path.startsWith(m.url) ? 'on' : ''}">${I(m.icon)}${m.label}</a>`).join('')}</div>` : ''}</div>`; }).join('')}`;
+    const [g1, g2] = DM.NAV;
     rail.innerHTML = `
-      <div class="brand" data-act="merchant-menu"><div class="mk">A</div><div class="grow"><div class="nm">Demo Merchant User</div><div class="sub">Anuma · Demo workspace</div></div>${I('chevD')}</div>
-      <button class="searchbtn" data-act="palette">${I('search')} Search <kbd>⌘K</kbd></button>
-      <nav id="nav">${DM.NAV.map((g) => `${g.label ? `<div class="navgrp">${g.label}</div>` : ''}${g.items.map((it) => { const on = act && act.key === it.key; const c = it.count ? it.count() : 0; return `<div style="position:relative"><a class="navitem ${on ? 'active' : ''}" ${it.menu ? `data-act="settings-menu"` : `href="#${it.url}"`} data-nav="${it.key}">${I(it.icon)}<span class="grow">${it.label}</span>${c ? `<span class="cnt">${c}</span>` : ''}${it.menu ? I('chevU') : ''}</a>${it.menu && DM.ui.setMenu ? `<div class="navmenu">${it.menu.map((m) => `<a href="#${m.url}">${I(m.icon)}${m.label}</a>`).join('')}</div>` : ''}</div>`; }).join('')}`).join('')}</nav>
-      <div class="acct" data-act="account-menu">${DM.avatar('Demo Merchant', '')}<div class="grow"><div class="sm b">Demo Merchant User</div><div class="xs muted">demo@anuma.run</div></div>${I('more')}</div>`;
+      <div class="brand" data-act="merchant-menu">${MARK}<div class="grow"><div class="nm">Demo Merchant User</div><div class="sub">Admin</div></div>${I('chevD')}</div>
+      <button class="searchbtn" data-act="palette">${I('search')} <span class="grow">Search…</span><kbd>⌘K</kbd></button>
+      <nav id="nav">${grp(g1)}<div class="grow"></div>${grp(g2)}</nav>
+      <div class="acct" data-act="account-menu"><span class="avatar" style="background:#7c3aed">DM</span><div class="grow" style="min-width:0"><div class="sm b trunc">Demo Admin</div><div class="xs muted trunc">admin@demo.anuma.run</div></div>${I('chevU')}</div>`;
+  }
+  function ucSwitcher() {
+    const U = DM.ucs[DM.uc]; const i = DM.scn.index; const n = U.steps.length;
+    return `<button class="btn outline sm" data-act="uc-menu" title="Switch use case">${I(U.icon || 'zap')} <span>${esc(U.short)}</span> ${I('chevD')}</button>${i >= 0 ? `<span class="stepchip" title="Scenario progress"><button data-act="scn-prev">${I('chevL')}</button><span class="mono xs">Step ${i + 1}/${n}</span><button data-act="scn-next">${I('chevR')}</button></span>` : ''}`;
   }
   function renderTop(path, m) {
     const act = activeNav(path); const unread = (DM.S.notifications || []).filter((n) => n.unread).length;
-    const U = DM.ucs[DM.uc];
-    document.getElementById('topbar').innerHTML = `<div id="crumb">${act ? `<b>${esc(act.label)}</b>` : ''}${m && m.pg.crumb ? ' / ' + esc(typeof m.pg.crumb === 'function' ? m.pg.crumb(m.params) : m.pg.crumb) : ''}</div>
-      <span class="badge outline right" title="Active use case">${I(U.icon || 'zap')} ${esc(U.short)}</span>
-      <button class="btn ghost icon sm" data-act="ask" title="Ask Anuma">${I('sparkle')}</button>
-      <button class="btn ghost icon sm" data-act="bell" title="Notifications" style="position:relative">${I('bell')}${unread ? `<span class="unread" style="position:absolute;top:-3px;right:-3px;min-width:15px;height:15px;font-size:9.5px">${unread}</span>` : ''}</button>
-      <button class="btn outline sm" data-act="toggle-panel" title="Show / hide scenarios">${I('sidebar')} Scenarios</button>`;
+    const label = (m && m.pg.crumb ? (typeof m.pg.crumb === 'function' ? m.pg.crumb(m.params) : m.pg.crumb) : null) || (act ? act.label : '');
+    const parent = act && m && m.pg.crumb && act.label !== label ? `<a href="#${act.url}" class="muted">${esc(act.label)}</a><span class="muted"> / </span>` : '';
+    document.getElementById('topbar').innerHTML = `<div id="crumb"><span class="muted">Demo Merchant User</span><span class="muted"> / </span>${parent}<b>${esc(label)}</b></div>
+      <div class="row gap4 right">${ucSwitcher()}
+      <button class="btn ghost icon" data-act="ask" title="Ask Anuma">${I('chat')}</button>
+      <button class="btn ghost icon bellbtn" data-act="bell" title="Notifications">${I('bell')}${unread ? `<span class="bellcount">${unread > 9 ? '9+' : unread}</span>` : ''}</button></div>`;
   }
+  DM.bellPopover = () => {
+    document.querySelectorAll('.bellpop').forEach((e) => e.remove());
+    const N = (DM.S.notifications || []).slice(0, 6); const total = (DM.S.notifications || []).length;
+    const ic = (n) => (/hand-?off/i.test(n.subject || '') ? 'arrowR' : /assigned/i.test(n.subject || '') ? 'chat' : /review|flag/i.test(n.subject || '') ? 'eye' : 'bell');
+    const d = document.createElement('div'); d.className = 'bellpop';
+    d.innerHTML = `<div class="bp-h"><b>Notifications</b><span class="cnt-chip dark">${total}</span></div>${N.length ? N.map((n) => `<a class="bp-row" href="#${(n.href || '/notifications').split('#').pop()}"><span class="icotile">${I(ic(n))}</span><div class="grow" style="min-width:0"><div class="row"><b class="sm">${esc(n.subject)}</b><span class="grow"></span><span class="xs muted">${esc(n.at || '')}</span>${n.unread ? '<i class="udot"></i>' : ''}</div><div class="sm muted trunc">${esc(n.body || '')}</div></div></a>`).join('') : '<div class="empty" style="padding:28px">You are all caught up.</div>'}<a class="bp-f" href="#/notifications">View all notifications ${I('arrowR')}</a>`;
+    document.body.appendChild(d);
+    setTimeout(() => document.addEventListener('click', function f(e) { if (!e.target.closest('.bellpop')) { d.remove(); } document.removeEventListener('click', f); }, { once: false }), 0);
+    d.addEventListener('click', (e) => { if (e.target.closest('a')) d.remove(); });
+  };
 
   function renderPanel() {
     const el = document.getElementById('panel'); if (!el || !DM.uc) return;
@@ -291,6 +354,8 @@
     const focus = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.input;
     const sel = focus ? [document.activeElement.selectionStart, document.activeElement.selectionEnd] : null;
     const view = document.getElementById('view'); const sc = view.scrollTop;
+    document.getElementById('app').classList.toggle('panel-closed', !path.startsWith('/inbox') || DM.ui.panelHidden);
+    DM._grids = [];
     renderRail(path); renderTop(path, m);
     let html;
     try { html = m ? m.pg.render({ params: m.params, q: DM.query(), path }) : `<div class="page"><div class="empty"><h3>Page not found</h3><p>${esc(path)}</p><p style="margin-top:12px"><a class="btn outline" href="#/dashboard">Back to dashboard</a></p></div></div>`; }
@@ -338,12 +403,13 @@
   DM.act = (n, fn) => (A[n] = fn);
   DM.input = (n, fn) => (DM.inputs[n] = fn);
   A['close-modal'] = () => DM.closeModal(); A['close-drawer'] = () => DM.closeDrawer();
-  A['toggle-panel'] = () => { document.getElementById('app').classList.toggle('panel-closed'); };
+  A['toggle-panel'] = () => { DM.ui.panelHidden = !DM.ui.panelHidden; DM.render(); };
   A['uc'] = (el) => DM.setUC(el.dataset.arg);
   A['scn-next'] = () => { DM.scnStop(); DM.scnNext(); }; A['scn-prev'] = () => { DM.scnStop(); DM.scnPrev(); };
   A['scn-play'] = () => (DM.scn.playing ? DM.scnStop() : DM.scnPlay()); A['scn-reset'] = () => DM.scnReset();
   A['scn-jump'] = (el) => { DM.scnStop(); DM.scnApply(+el.dataset.arg); };
-  A['bell'] = () => DM.go('/notifications');
+  A['bell'] = () => DM.bellPopover();
+  A['uc-menu'] = (el) => DM.menu(el, Object.values(DM.ucs).map((u) => ({ label: u.short + ' · ' + u.tagline, icon: u.key === DM.uc ? 'check' : u.icon, run: () => DM.setUC(u.key) })));
   A['ask'] = () => DM.go('/ask');
   A['palette'] = () => openPalette();
   A['settings-menu'] = (el) => { DM.ui.setMenu = !DM.ui.setMenu; renderRail(DM.path()); };
