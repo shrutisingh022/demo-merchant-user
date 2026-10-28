@@ -1,154 +1,173 @@
-/* Draft orders — grid columns/rows for the Orders screen, right drawer (Overview | Lines | Activity | ERP), full detail page. */
+/* pages/drafts.js — `/orders/drafts` = NuHome "Orders" / Stuffcool "Draft Orders" (the same live screen, renamed per tenant).
+   Header + period/Compare, 3 summary cards, toolbar (views, columns, search), AG Grid, and the 800px read-only record drawer (`/orders/drafts/:id`).
+   Spec: docs/spec/orders-rfqs.md §1–2. Reads DM.S.drafts / parties / contacts / users / styles / threads. */
 (function () {
-  const { esc, fmt, icon: I } = DM;
-  const st = document.createElement('style'); st.dataset.for = 'drafts';
-  st.textContent = `
-  .dr-grid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;align-items:start}
-  @media(max-width:1180px){.dr-grid{grid-template-columns:1fr}}
-  .dr-flag td{background:var(--warning-tint)}
-  .dr-num{width:58px;height:28px;text-align:right;padding:0 8px}
-  .dr-note{background:var(--warning-tint);border:1px solid #f1dca7;border-radius:12px;padding:10px 12px;font-size:12px}
+  const DM = window.DM, I = DM.icon, esc = DM.esc, O = DM.orders;
+  const S = () => DM.S;
+  const css = document.createElement('style'); css.dataset.for = 'drafts';
+  css.textContent = `
+  .ord-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px}
+  .ord-top h1{font-size:20px;font-weight:600;letter-spacing:-.01em}
+  .ord-sub{display:flex;align-items:center;gap:12px;margin-top:6px;font-size:12px;color:#737373;min-height:20px}
+  .ord-sub .cmp{display:inline-flex;align-items:center;gap:6px;color:#171717}
+  .ord-sw{width:28px;height:16px;border-radius:999px;background:#d4d4d4;position:relative;transition:background-color .15s;flex:none}
+  .ord-sw::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#fff;transition:transform .15s}
+  .ord-sw.on{background:#0a0a0a}.ord-sw.on::after{transform:translateX(12px)}
+  .ord-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  .ord-cards .statc-v{align-items:center;min-height:48px}.ord-cards .sp{margin-left:auto;display:block}
+  .ord-cards .delta{margin-left:8px}
+  .ord-bar{display:flex;align-items:center;gap:8px}
+  .ord-tbl{margin-top:2px}
+  /* drawer */
+  .dr-title{display:flex;align-items:baseline;gap:10px;font-size:16px;font-weight:500;line-height:20px}
+  .dr-title .no{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .dr-sub{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px;color:#737373}.dr-sub .dot{width:3px;height:3px;border-radius:50%;background:#a3a3a3}
+  .dr-figs{display:flex;gap:12px;margin:4px 0 20px}.dr-figs .card{width:215px}
+  .dr-h{display:flex;align-items:center;gap:8px;margin:0 0 8px}.dr-h b{font-size:12px;font-weight:600}.dr-h .lock{margin-left:auto;display:inline-flex;gap:5px;align-items:center;color:#737373}.dr-h .lock svg.i{width:12px;height:12px}
+  .dr-items{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:20px}
+  .dr-row{display:grid;grid-template-columns:minmax(0,1fr) 110px 90px;align-items:center;padding:0 16px;border-top:1px solid var(--border)}
+  .dr-row.h{height:36px;background:#fafafa;border-top:0;color:#525252;font-weight:500}
+  .dr-row.it{min-height:55px;padding-top:8px;padding-bottom:8px}.dr-row .pr{display:flex;gap:10px;align-items:center;min-width:0}
+  .dr-row .sw{width:32px;height:32px;border-radius:8px;flex:none;background:#f1f1f1;object-fit:cover;box-shadow:0 0 0 1px rgba(10,10,10,.06)}
+  .dr-row .pn{font-weight:600;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dr-row .pv{color:#737373;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .dr-row .q{font-weight:600}
+  .erp{border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  .erp-h{display:flex;align-items:center;gap:8px;padding:12px 16px;cursor:pointer;width:100%;text-align:left}.erp-h:hover{background:#fafafa}
+  .erp-h b{font-weight:500}.erp-h .pill-s{margin-left:auto}.erp-h .chev{transition:transform .2s ease}.erp.open .chev{transform:rotate(180deg)}
+  .erp-b{max-height:0;overflow:hidden;transition:max-height .25s ease}.erp.open .erp-b{max-height:420px}
+  .erp-kv{margin:0 16px 16px;padding:12px;background:rgba(245,245,245,.6);border-radius:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;display:grid;grid-template-columns:140px 1fr;gap:4px 12px}
+  .erp-kv dt{color:#737373}.erp-kv dd{word-break:break-all}.erp-kv dd.err{color:var(--destructive)}
+  .pill-s{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:999px;height:20px;padding:0 8px;font-size:10px;font-weight:500;color:#737373}
+  .pill-s i{width:6px;height:6px;border-radius:50%;background:#a3a3a3}.pill-s.ok{color:#171717}.pill-s.ok i{background:var(--success)}.pill-s.bad{color:#171717}.pill-s.bad i{background:var(--destructive)}
+  .wa-g{color:#1daa68}.wa-g svg.i{color:#1daa68}
   `;
-  document.head.appendChild(st);
+  document.head.appendChild(css);
 
-  const DW = (DM.ui.draftDrawer = DM.ui.draftDrawer || { id: null, tab: 'overview' });
-  const STATUS = { pending: ['Needs review', 'amber'], approved: ['Approved', 'blue'], posted: ['Posted as order', 'green'], rejected: ['Rejected', 'red'] };
-  const pn = (id) => (DM.by(DM.S.parties || [], id) || {}).name || '—';
-  const sb = (s) => { const [l, t] = STATUS[s] || [s, 'grey']; return DM.status(l, t); };
-  const get = (id) => DM.by(DM.S.drafts || [], id);
-  const total = (d) => (d.lines || []).reduce((a, l) => a + (l.state === 'flagged' ? 0 : l.qty * l.price), 0);
-  const flagged = (d) => (d.lines || []).filter((l) => l.state === 'flagged').length;
-  const LSTATE = { pending: ['To confirm', 'amber'], flagged: ['Flagged', 'red'], confirmed: ['Confirmed', 'green'] };
-  const caseNo = (t) => (t ? DM.caseNo(t) : '');
-  const byName = (d) => (!d.by || d.by === 'Anuma' ? d.by : (DM.by(DM.S.users || [], d.by) || {}).name || d.by);
-  // next document number in the same format as the existing ones (keeps prefix + zero padding)
-  const nextNo = (list, fallback) => { let best = null, bn = -1; (list || []).forEach((x) => { const m = String(x.no).match(/^(.*?)(\d+)$/); if (m && +m[2] > bn && +m[2] < 1e7) { bn = +m[2]; best = m; } }); return best ? best[1] + String(bn + 1).padStart(best[2].length, '0') : fallback; };
-  const log = (d, text) => { (d.activity = d.activity || []).push({ at: new Date().toISOString(), text }); };
+  const ui = () => (DM.ui.ord = DM.ui.ord || { period: 'month', from: '', to: '', compare: true, q: '', assigned: '', view: 'all', views: [] });
+  const label = () => DM.navLabel('orders') || 'Orders';
+  const plural = () => (label() === 'Draft Orders' ? 'draft orders' : 'orders');
+  const isTally = () => DM.uc === 'stuffcool';
+  const T = () => DM.TODAY;
+  const addDays = (s, n) => { const d = new Date(s + 'T00:00:00'); d.setDate(d.getDate() + n); return O.iso(d); };
+  const human = (s) => new Date(s + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  /* ── shared with the Orders screen ── */
-  DM.draftViews = [['all', 'All drafts'], ['pending', 'Needs review'], ['flagged', 'Flagged lines'], ['approved', 'Approved'], ['posted', 'Posted as order'], ['rejected', 'Rejected'], ['anuma', 'Made by Anuma']];
-  DM.draftRows = (view, q) => {
-    q = (q || '').toLowerCase();
-    return (DM.S.drafts || []).filter((d) => ({ all: 1, pending: d.status === 'pending', flagged: flagged(d) > 0, approved: d.status === 'approved', posted: d.status === 'posted', rejected: d.status === 'rejected', anuma: d.by === 'Anuma' }[view])
-      && (!q || (d.no + pn(d.partyId)).toLowerCase().includes(q)));
+  /* ───────── period maths ───────── */
+  const periodRange = (u) => {
+    const t = T(); let from = t, to = t;
+    if (u.period === 'week') { const d = new Date(t + 'T00:00:00'); const wd = (d.getDay() + 6) % 7; from = addDays(t, -wd); }
+    else if (u.period === 'month') from = t.slice(0, 8) + '01';
+    else if (u.period === 'custom' && u.from && u.to) { from = u.from; to = u.to; }
+    const days = Math.round((new Date(to + 'T00:00:00') - new Date(from + 'T00:00:00')) / 86400000) + 1;
+    return { from, to, days, prevFrom: addDays(from, -days), prevTo: addDays(from, -1) };
   };
-  DM.draftCols = () => [
-    { id: 'no', label: 'Number', w: '130px', render: (d) => DM.mono(d.no) },
-    { id: 'party', label: 'Party', flex: 2, render: (d) => `<span class="b">${esc(pn(d.partyId))}</span>` },
-    { id: 'status', label: 'Status', w: '150px', render: (d) => sb(d.status) },
-    { id: 'lines', label: 'Lines', num: true, w: '170px', render: (d) => `${(d.lines || []).length}${flagged(d) ? ` <span class="badge red">${flagged(d)} flagged</span>` : ''}` },
-    { id: 'total', label: 'Total', num: true, w: '120px', render: (d) => fmt.inr(d.total || total(d)) },
-    { id: 'created', label: 'Created', w: '130px', render: (d) => fmt.dt(d.createdAt) },
-    { id: 'by', label: 'Created by', w: '150px', render: (d) => (d.by === 'Anuma' ? `<span class="badge violet">${I('sparkle')}Anuma</span>` : d.by ? `<span class="row" style="gap:6px">${DM.avatar(byName(d), 'sm')}<span class="trunc">${esc(byName(d))}</span></span>` : '—') },
-    { id: 'case', label: 'Case', w: '120px', render: (d) => { const t = d.threadId && DM.by(DM.S.threads || [], d.threadId); return t ? `<a class="monotag" href="#/inbox/threads?case=${esc(t.id)}">${esc(caseNo(t))}</a>` : '<span class="muted">—</span>'; } },
+  const inR = (d, a, b) => { const x = DM.dayOf(d.createdAt); return x >= a && x <= b; };
+  const metrics = (rows, a, b) => { const R = rows.filter((d) => inR(d, a, b)); return { orders: R.length, items: R.reduce((s, d) => s + d.lines.length, 0), esc: R.filter((d) => (d.interventions || 0) > 0).length, rows: R }; };
+  const series = (rows, a, b, key) => {
+    const days = Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 86400000) + 1; const out = [];
+    if (days === 1) { const R = rows.filter((d) => DM.dayOf(d.createdAt) === a); for (let h = 0; h < 8; h++) out.push(R.filter((d) => { const hr = +new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', hour12: false }).format(new Date(d.createdAt)); return hr >= h * 3 && hr < h * 3 + 3; }).reduce((s, d) => s + (key === 'items' ? d.lines.length : key === 'esc' ? ((d.interventions || 0) > 0 ? 1 : 0) : 1), 0)); return out; }
+    for (let k = 0; k < days; k++) { const day = addDays(a, k); const R = rows.filter((d) => DM.dayOf(d.createdAt) === day); out.push(R.reduce((s, d) => s + (key === 'items' ? d.lines.length : key === 'esc' ? ((d.interventions || 0) > 0 ? 1 : 0) : 1), 0)); }
+    return out;
+  };
+  const spark = (v) => { const w = 80, h = 28; const mx = Math.max(...v, 1); const pts = v.length < 2 ? [0, 0].map((_, i) => [i * w, h - 3]) : v.map((x, i) => [(i / (v.length - 1)) * (w - 2) + 1, h - 3 - (x / mx) * (h - 8)]); const flat = v.every((x) => x === 0); return `<svg class="sp" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="opacity:${flat ? 0.35 : 1}"><polyline points="${pts.map((p) => p.map((n) => n.toFixed(1)).join(',')).join(' ')}" fill="none" stroke="#16a34a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>`; };
+  const delta = (cur, prev, goodUp) => {
+    if (prev === 0 && cur === 0) return null;
+    const pct = prev === 0 ? 100 : ((cur - prev) / prev) * 100; if (Math.abs(pct) < 0.05) return null;
+    const up = pct > 0; const good = goodUp ? up : !up;
+    return { dir: up ? 'up' : 'down', text: Math.abs(pct).toFixed(1) + '%', tone: good ? 'green' : 'red' };
+  };
+
+  /* ───────── list ───────── */
+  const memberItems = () => (S().users || []).filter((u) => u.status !== 'Invited').map((u) => ({ label: u.name, value: u.id }));
+  const allRows = () => (S().drafts || []).slice();
+  const visible = () => {
+    const u = ui(); let L = allRows();
+    if (u.assigned) L = L.filter((d) => d.assigned === u.assigned || (d.assignees || []).includes(u.assigned));
+    if (u.q) { const q = u.q.toLowerCase(); L = L.filter((d) => [d.no, d.partyName, d.caseNo, d.city, (O.party(S(), d.partyId) || {}).city, contactName(d)].join(' ').toLowerCase().includes(q)); }
+    return L.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  };
+  const contactName = (d) => { const c = (S().contacts || []).find((x) => x.id === d.contactId); return c ? c.name : ''; };
+  const q = () => DM.query();
+  const qstr = () => { const u = ui(); if (u.period === 'month') return ''; if (u.period === 'custom') return `?from=${u.from}&to=${u.to}`; return '?period=' + u.period; };
+  const syncFromUrl = () => { const u = ui(), Q = q(); if (Q.get('from') && Q.get('to')) { u.period = 'custom'; u.from = Q.get('from'); u.to = Q.get('to'); } else u.period = Q.get('period') || 'month'; };
+
+  const card = (name, icon, key, cur, prev, goodUp, u, rows, r) => {
+    const d = u.compare ? delta(cur, prev, goodUp) : null;
+    return `<div class="card statc" data-rid="ordcard-${key}"><div class="statc-h">${DM.icoTile(icon)}<span class="grow">${name}</span></div><div class="statc-d"></div><div class="statc-v"><span data-count="${cur}" data-fmt="num" data-ck="ord-${key}">${DM.fmt.num(cur)}</span>${d ? `<span class="delta ${d.tone}">${I(d.dir === 'down' ? 'arrowDown' : 'uprightarrow')}${d.text}</span>` : ''}${spark(series(rows, r.from, r.to, key))}</div></div>`;
+  };
+
+  const caseCell = (d) => { if (!d.caseNo && !d.caseId) return '<span class="muted">—</span>'; const t = O.thread(S(), d); const arg = t ? t.id : d.caseId || d.caseNo; return `<a class="case-link" href="#/inbox/threads?case=${encodeURIComponent(arg)}" title="Open case">${esc(d.caseNo || (t && DM.caseNo(t)) || '')}${I('uprightarrow')}</a>`; };
+  const cols = () => [
+    { k: 'no', label: 'ID', w: 110, mono: true },
+    { k: 'createdAt', label: 'Date and Time', w: 200, sortable: true, sort: 'desc', filter: { tip: "This filter isn't wired up yet." }, text: (r) => r.createdAt, render: (r) => esc(O.fmtDT(r.createdAt)) },
+    { k: 'contact', label: 'Contact Name', w: 190, text: (r) => contactName(r), render: (r) => (contactName(r) ? esc(contactName(r)) : '<span class="muted">—</span>') },
+    { k: 'partyName', label: 'Party Name', flex: 1, minW: 180, text: (r) => r.partyName, render: (r) => `<span style="font-weight:600">${esc(r.partyName || '—')}</span>` },
+    { k: 'items', label: 'Items', w: 100, text: (r) => r.lines.length, render: (r) => String(r.lines.length) },
+    { k: 'city', label: 'City', w: 160, text: (r) => (O.party(S(), r.partyId) || {}).city || '', render: (r) => { const c = (O.party(S(), r.partyId) || {}).city; return c ? esc(c.replace(/\b(\w)(\w*)/g, (m, a, b) => a + b.toLowerCase())) : '<span class="muted">—</span>'; } },
+    { k: 'state', label: 'State', w: 160, text: (r) => (O.party(S(), r.partyId) || {}).state || '', render: (r) => { const c = (O.party(S(), r.partyId) || {}).state; return c ? esc(c) : '<span class="muted">—</span>'; } },
+    { k: 'case', label: 'Case', w: 160, text: (r) => r.caseNo || '', render: caseCell },
+    { k: 'assigned', label: 'Assigned to', w: 130, text: (r) => r.assigned || '', render: (r) => `<span class="asg-cell">${O.assignee(r.assigned)}</span>`, filter: { menu: { label: 'Assigned to', title: 'Filter by assigned to', items: memberItems(), value: ui().assigned }, onChange: (v) => { ui().assigned = v || ''; DM.render(); } } },
   ];
 
-  /* ── mutations ── */
-  const refresh = () => { DM.render(); refreshDraft(); };
-  function approve(d) { d.lines.forEach((l) => { if (l.state === 'pending') l.state = 'confirmed'; }); d.status = 'approved'; d.total = total(d); log(d, 'Approved'); }
-  function post(d) {
-    const no = nextNo(DM.S.orders, 'ORD-' + ((DM.S.orders || []).length + 1));
-    const lines = d.lines.filter((l) => l.state !== 'flagged').map((l) => ({ productId: l.productId, name: l.name, qty: l.qty, unit: l.unit, price: l.price }));
-    const sys = DM.erpSystem ? DM.erpSystem() : 'Tally';
-    const o = { id: DM.uid('ORD'), no, partyId: d.partyId, status: 'confirmed', total: lines.reduce((a, l) => a + l.qty * l.price, 0), placedAt: new Date().toISOString(), channel: d.threadId ? 'whatsapp' : 'web', payment: 'Credit', lines, erp: { system: sys, state: 'pending', at: new Date().toISOString() }, threadId: d.threadId };
-    (DM.S.orders = DM.S.orders || []).unshift(o); d.status = 'posted'; d.orderId = o.id; d.total = o.total; log(d, `Posted as ${o.no}`); return o;
-  }
-  DM.act('dr-open', (el) => { DW.tab = 'overview'; openDraft(el.dataset.arg); });
-  DM.act('dr-approve', (el) => { const d = get(el.dataset.arg); if (flagged(d)) { DM.toast('Resolve flagged lines first', 'alert'); DW.tab = 'lines'; return openDraft(d.id); } approve(d); DM.toast(`${d.no} approved`); refresh(); });
-  DM.act('dr-post', (el) => { const d = get(el.dataset.arg); if (flagged(d)) { DM.toast('Resolve flagged lines first', 'alert'); DW.tab = 'lines'; return openDraft(d.id); } if (d.status === 'pending') approve(d); const o = post(d); DM.toast(`Posted as ${o.no}`); DW.tab = 'erp'; refresh(); });
-  DM.act('dr-reject', (el) => {
-    const d = get(el.dataset.arg);
-    DM.modal({ title: 'Reject draft', body: `<p class="muted sm" style="margin-bottom:10px">${esc(d.no)} for ${esc(pn(d.partyId))}</p>${DM.field('Reason', 'reason', { area: true, ph: 'Why is this being rejected?' })}`, actions: [{ label: 'Cancel', cls: 'outline' }, { label: 'Reject draft', cls: 'danger', run: (m) => { const r = DM.formData(m).reason || 'no reason'; d.status = 'rejected'; d.note = (d.note ? d.note + ' · ' : '') + 'Rejected: ' + r; log(d, 'Rejected — ' + r); DM.toast(d.no + ' rejected'); refresh(); } }] });
-  });
-  DM.act('dr-reopen', (el) => { const d = get(el.dataset.arg); d.status = 'pending'; log(d, 'Moved back to review'); DM.toast('Moved back to review'); refresh(); });
-  DM.act('dr-line-ok', (el) => { const [id, i] = el.dataset.arg.split('|'); const d = get(id); d.lines[+i].state = 'confirmed'; log(d, `Confirmed line ${+i + 1}`); DM.toast('Line confirmed'); refresh(); });
-  DM.act('dr-line-del', (el) => { const [id, i] = el.dataset.arg.split('|'); const d = get(id); d.lines.splice(+i, 1); d.total = total(d); log(d, 'Removed a line'); DM.toast('Line removed'); refresh(); });
-  DM.act('dr-line-match', (el) => {
-    const [id, i] = el.dataset.arg.split('|'); const d = get(id); const l = d.lines[+i]; let query = '';
-    const body = () => (DM.S.products || []).filter((p) => !query || (p.name + p.sku).toLowerCase().includes(query)).slice(0, 12).map((p) => `<div class="listrow" data-pick="${p.id}" style="border:1px solid var(--border);border-radius:9px;margin-bottom:6px;align-items:center"><div class="grow"><div class="b sm">${esc(p.name)}</div><div class="xs muted">${esc(p.sku)} · stock ${p.stock}</div></div><span class="mono sm">${fmt.inr(p.price)}</span></div>`).join('') || DM.empty('package', 'No products found', '');
-    DM.modal({ title: 'Match to a product', body: `<div class="search" style="margin-bottom:10px">${I('search')}<input class="input" style="width:100%" id="dr-pq" placeholder="Search catalogue…"></div><div id="dr-pl">${body()}</div>`, onMount: (m) => {
-      const pl = m.querySelector('#dr-pl'); m.querySelector('#dr-pq').addEventListener('input', (e) => { query = e.target.value.toLowerCase(); pl.innerHTML = body(); });
-      pl.addEventListener('click', (e) => { const r = e.target.closest('[data-pick]'); if (!r) return; const p = DM.by(DM.S.products, r.dataset.pick); Object.assign(l, { productId: p.id, name: p.name, unit: p.unit, price: p.price, state: 'confirmed' }); d.total = total(d); log(d, `Matched line ${+i + 1} to ${p.name}`); DM.closeModal(); DM.toast('Matched to ' + p.name); refresh(); });
-    } });
-  });
-  DM.input('dr-qty', (v, el) => { const [id, i] = el.dataset.arg.split('|'); const d = get(id); d.lines[+i].qty = Math.max(0, +v); d.total = total(d); refresh(); });
-  DM.act('dr-new', () => {
-    if (!(DM.S.parties || []).length || !(DM.S.products || []).length) return DM.toast('Add a party and a product first', 'alert');
-    DM.modal({
-      title: 'New draft order', body: `<div class="col">${DM.field('Party', 'party', { options: (DM.S.parties || []).map((p) => p.name) })}${DM.field('Product', 'product', { options: (DM.S.products || []).map((p) => p.name) })}${DM.field('Quantity', 'qty', { type: 'number', value: 10 })}</div>`,
-      actions: [{ label: 'Cancel', cls: 'outline' }, { label: 'Create draft', run: (m) => {
-        const f = DM.formData(m); const p = DM.S.parties.find((x) => x.name === f.party); const pr = DM.S.products.find((x) => x.name === f.product);
-        const d = { id: DM.uid('DR'), no: nextNo(DM.S.drafts, 'DRF-' + ((DM.S.drafts || []).length + 1)), partyId: p.id, status: 'pending', total: pr.price * (+f.qty || 1), createdAt: new Date().toISOString(), by: 'You', note: '', lines: [{ productId: pr.id, name: pr.name, qty: +f.qty || 1, unit: pr.unit, price: pr.price, state: 'pending' }] };
-        (DM.S.drafts = DM.S.drafts || []).unshift(d); log(d, 'Draft created'); DM.toast('Draft created'); DW.tab = 'overview'; DM.render(); openDraft(d.id);
-      } }],
-    });
-  });
-
-  /* ── drawer ── */
-  const events = (d) => {
-    const th = d.threadId && DM.by(DM.S.threads || [], d.threadId);
-    const ev = [{ at: d.createdAt, text: `Draft ${d.no} created by ${byName(d) || '—'}` }];
-    if (th) ev.push({ at: d.createdAt, text: `Assembled from the ${th.channel || 'chat'} conversation ${caseNo(th)}` });
-    if (flagged(d) || (d.lines || []).some((l) => l.note)) ev.push({ at: d.createdAt, text: `${flagged(d)} line(s) flagged for review` });
-    (d.activity || []).forEach((a) => ev.push(a));
-    return ev;
+  const render = ({ params }) => {
+    syncFromUrl(); const u = ui(); const rg = periodRange(u); const all = allRows();
+    const cur = metrics(all, rg.from, rg.to), prv = metrics(all, rg.prevFrom, rg.prevTo);
+    const rows = visible(); const changed = DM.changedRows('drafts', rows, (d) => d.status + '|' + d.lines.length + '|' + d.assigned + '|' + (d.erp ? d.erp.outcome : ''));
+    const rangeText = rg.from === rg.to ? human(rg.from) : human(rg.from) + ' – ' + human(rg.to);
+    const periods = [{ key: 'today', label: 'Today' }, { key: 'week', label: 'This week' }, { key: 'month', label: 'This month' }];
+    const seg = `<div class="pills" role="tablist">${periods.map((p) => `<button role="tab" class="pill ${u.period === p.key ? 'on' : ''}" data-act="ord-period" data-arg="${p.key}">${p.label}</button>`).join('')}<button role="tab" class="pill ${u.period === 'custom' ? 'on' : ''}" data-act="ord-custom">Custom ${I('pencil')}</button></div>`;
+    const view = (u.views || []).find((v) => v.id === u.view);
+    return `<div class="page wide">
+      <div class="ord-top"><div class="grow"><h1>${esc(label())}</h1><div class="ord-sub"><span>${esc(rangeText)}</span><button class="cmp" data-act="ord-compare"><span class="ord-sw ${u.compare ? 'on' : ''}"></span>Compare</button></div></div>${seg}</div>
+      <div class="ord-cards">${card('Orders', 'file', 'orders', cur.orders, prv.orders, true, u, all, rg)}${card('Line items', 'package', 'items', cur.items, prv.items, true, u, all, rg)}${card('Escalations', 'users', 'esc', cur.esc, prv.esc, false, u, all, rg)}</div>
+      ${DM.toolbar(DM.viewBtn(view ? view.name : 'All ' + plural(), 'ord-views'), `${DM.colsBtn('drafts-grid', (DM.ui._grid['drafts-grid'] && DM.ui._grid['drafts-grid'].hidden.size) || 0)}${DM.searchGroup('ord-q', 'Search ' + plural() + '…', u.q)}`)}
+      <div class="ord-tbl">${DM.table(cols(), rows, { id: 'drafts-grid', footer: plural(), go: (r) => '/orders/drafts/' + r.id + qstr(), rowCls: (r) => (changed.has(r.id) ? 'row-new' : ''), pageSize: 50, offset: 440, empty: { icon: 'file', title: 'No ' + label() + ' yet', sub: "New records show up here as they're created." } })}</div>
+    </div>`;
   };
-  function lineRows(d, open) {
-    return d.lines.map((l, i) => `<tr class="${l.state === 'flagged' ? 'dr-flag' : ''}">
-      <td>${l.productId ? `<div class="b">${esc(l.name)}</div><div class="xs muted">${esc((DM.by(DM.S.products || [], l.productId) || {}).sku || '')}</div>` : `<span class="b">${esc(l.name || 'Unmatched item')}</span>`}${l.note ? `<div class="xs" style="color:var(--warning-ink)">${esc(l.note)}</div>` : ''}</td>
-      <td class="num"><input class="input dr-num mono" type="number" min="0" value="${l.qty}" data-change="dr-qty" data-arg="${d.id}|${i}" ${open ? '' : 'disabled'}> <span class="xs muted">${esc(l.unit || '')}</span></td>
-      <td class="num mono">${fmt.inr(l.price)}</td><td class="num mono">${l.state === 'flagged' ? '—' : fmt.inr(l.qty * l.price)}</td>
-      <td><span class="${DM.popIf('dl:' + d.id + ':' + i, l.state)}">${DM.status((LSTATE[l.state] || [l.state])[0], (LSTATE[l.state] || [0, 'grey'])[1])}</span></td>
-      <td style="white-space:nowrap;text-align:right">${open ? `${l.state === 'flagged' ? DM.btn('Match', 'dr-line-match', { cls: 'outline sm', arg: d.id + '|' + i }) : l.state === 'pending' ? DM.btn('Confirm', 'dr-line-ok', { cls: 'outline sm', arg: d.id + '|' + i }) : ''}${DM.btn('', 'dr-line-del', { cls: 'ghost sm icon', arg: d.id + '|' + i, icon: 'trash' })}` : ''}</td></tr>`).join('');
-  }
-  function openDraft(id) {
-    const d = get(id); if (!d) return; DW.id = id;
-    const p = DM.by(DM.S.parties || [], d.partyId) || {}; const f = flagged(d); const open = d.status === 'pending'; const th = d.threadId && DM.by(DM.S.threads || [], d.threadId); const o = d.orderId && DM.by(DM.S.orders || [], d.orderId);
-    let body;
-    if (DW.tab === 'overview') body = `${f && open ? `<div class="dr-note" style="margin-bottom:12px"><b>${f} line${f > 1 ? 's' : ''} need a decision.</b> Match each to a product or remove it before approving. <button class="sm b" style="text-decoration:underline" data-act="dr-dtab" data-arg="lines">Go to lines</button></div>` : ''}
-      <div class="grid g3">${DM.statCard('Lines', DM.cnt(d.lines.length), f ? `${f} flagged` : 'All clear', 'package', { tone: f ? 'down' : '' })}${DM.statCard('Total', DM.cnt(total(d), 'inr'), 'excl. flagged', 'rupee')}${DM.statCard('Credit left', DM.cnt(Math.max(0, (p.creditLimit || 0) - (p.outstanding || 0)), 'inrc'), `of ${fmt.inrc(p.creditLimit || 0)}`, 'receipt', { tone: p.outstanding > p.creditLimit ? 'down' : '' })}</div>
-      <div class="sect">Party</div><div class="card pad"><div class="row">${DM.avatar(p.name || '?', 'lg', { org: true })}<div class="grow"><a class="b" href="#/crm/accounts/${esc(d.partyId)}">${esc(p.name || '—')}</a><div class="xs muted">${esc(p.city || '')}${p.terms ? ' · ' + esc(p.terms) : ''}</div></div>${th ? `<a class="monotag" href="#/inbox/threads?case=${esc(th.id)}">${I('chat')} ${esc(caseNo(th))}</a>` : ''}</div>
-        <dl class="kv" style="grid-template-columns:100px 1fr;margin-top:12px"><dt>Outstanding</dt><dd class="mono ${p.outstanding > p.creditLimit ? 'down' : ''}">${fmt.inr(p.outstanding)}</dd><dt>Created</dt><dd>${fmt.dt(d.createdAt)} by ${esc(byName(d) || '—')}</dd></dl>${DM.contactRow(d.partyId)}</div>
-      ${d.note ? `<div class="sect">Notes</div><div class="card pad sm">${esc(d.note)}</div>` : ''}
-      <div class="sect">Source</div><div class="card pad sm muted">${th ? `Assembled from the conversation with ${esc(pn(th.partyId))} on ${esc(th.channel)}.` : 'Created manually.'}</div>`;
-    else if (DW.tab === 'lines') body = `<table class="minitbl"><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th><th>State</th><th></th></tr></thead><tbody>${lineRows(d, open)}</tbody></table><div class="row" style="margin-top:12px"><span class="muted sm">Flagged lines are excluded from the total</span><span class="right b mono">Total ${fmt.inr(total(d))}</span></div>`;
-    else if (DW.tab === 'activity') body = `<div class="ord-tl">${events(d).map((e) => `<div class="ev done"><div class="sm b">${esc(e.text)}</div>${e.at ? `<div class="xs muted">${fmt.dt(e.at)}</div>` : ''}</div>`).join('')}</div>`;
-    else body = o ? DM.erpPanel(o) : `<div class="empty-card"><span class="icotile lg">${I('upload')}</span><div class="b" style="margin-top:10px">Not posted yet</div><div class="muted sm" style="margin:2px 0 12px">Once posted as an order, it syncs to ${esc(DM.erpSystem())} from here.</div>${d.status === 'rejected' ? '' : DM.btn('Approve & post', 'dr-post', { arg: d.id, icon: 'send' })}</div>`;
-    DM.sheet('draft:' + id, {
-      title: `<div class="row">${DM.mono(d.no)}<span class="${DM.popIf('drst:' + d.id, d.status)}">${sb(d.status)}</span></div><div class="sm muted" style="margin-top:4px">${esc(pn(d.partyId))}</div>`,
-      headRight: `<a class="btn ghost icon sm" href="#/orders/drafts/${esc(d.id)}" title="Open full page">${I('ext')}</a>`,
-      tabs: [{ key: 'overview', label: 'Overview' }, { key: 'lines', label: 'Lines', count: d.lines.length }, { key: 'activity', label: 'Activity' }, { key: 'erp', label: 'ERP' }], tab: DW.tab, body,
-      footer: `${open ? `${DM.btn('Reject', 'dr-reject', { cls: 'outline sm', arg: d.id })}${DM.btn('Approve', 'dr-approve', { cls: 'outline sm', arg: d.id, icon: 'check' })}${DM.btn('Approve & post', 'dr-post', { cls: 'sm', arg: d.id, icon: 'send' })}` : ''}${d.status === 'approved' ? DM.btn('Post as order', 'dr-post', { cls: 'sm', arg: d.id, icon: 'send' }) : ''}${d.status === 'rejected' ? DM.btn('Reopen', 'dr-reopen', { cls: 'outline sm', arg: d.id }) : ''}${o ? DM.btn('View order', '', { cls: 'outline sm', go: '/orders/' + o.id }) : ''}`,
+
+  /* ───────── drawer ───────── */
+  const tc = (m) => (m == null ? '—' : m < 60 ? Math.round(m) + ' min' : m < 1440 ? (m / 60).toFixed(1) + ' hr' : (m / 1440).toFixed(1) + ' d');
+  const istIso = (v) => { if (!v) return '—'; const d = new Date(Date.parse(v) + 5.5 * 3600000); return d.toISOString().replace('Z', '').replace(/\.\d+$/, '') + '+05:30'; };
+  const erpBox = (d) => {
+    const e = d.erp; const sys = isTally() ? 'Tally' : 'Coral ERP'; const open = DM.ui.ord && DM.ui.ord.erpOpen;
+    const keys = isTally() ? ['outcome', 'transaction', 'voucherNo', 'voucherType', 'ledger', 'customerRef', 'sentAt', 'responseAt', 'lineCount', 'error'] : ['outcome', 'transaction', 'orderRef', 'customerRef', 'sentAt', 'responseAt', 'lineCount', 'error'];
+    const val = (k) => { if (!e) return '—'; let v = e[k]; if (k === 'sentAt' || k === 'responseAt') v = istIso(v); return v == null || v === '' ? '—' : String(v); };
+    const pill = !e ? `<span class="pill-s"><i></i>—</span>` : e.outcome === 'ok' ? `<span class="pill-s ok"><i></i>ok</span>` : `<span class="pill-s bad"><i></i>error</span>`;
+    return `<div class="erp ${open ? 'open' : ''}" id="erp-box"><button class="erp-h" data-act="ord-erp">${I('link')}<b>${sys}</b>${pill}<span class="chev">${I('chevD')}</span></button><div class="erp-b"><dl class="erp-kv">${keys.map((k) => `<dt>${k}</dt><dd class="${k === 'error' && e && e.error ? 'err' : ''}">${esc(val(k))}</dd>`).join('')}</dl></div></div>`;
+  };
+  const openDrawer = (d) => {
+    const s = S(); const t = O.thread(s, d); const st = d.createdAt;
+    const lines = d.lines.map((l) => `<div class="dr-row it"><div class="pr">${O.swatch(l.variantId) ? `<img class="sw" src="${esc(O.swatch(l.variantId))}" alt="">` : '<span class="sw"></span>'}<div style="min-width:0"><div class="pn">${esc(l.name || '—')}</div><div class="pv">${esc(l.variant || '—')}</div></div></div><div class="q">${esc(l.qty == null ? '—' : l.qty)}</div><div>${esc(l.unit || '—')}</div></div>`).join('');
+    const body = `<div class="dr-figs">${DM.statCard('Time to close', tc(d.timeToCloseMin), '', 'clock')}${DM.statCard('Interventions', String(d.interventions || 0), '', 'users')}</div>
+      <div class="dr-h"><b>Items</b><span class="cnt-chip">${d.lines.length}</span><span class="lock">${I('lockk')} Locked after confirmation</span></div>
+      <div class="dr-items"><div class="dr-row h"><div>Product / variant</div><div>Quantity</div><div>Unit</div></div>${lines || '<div class="dr-row it"><span class="muted">—</span></div>'}</div>
+      ${erpBox(d)}`;
+    const chat = `<button class="btn outline sm" data-act="ord-chat" data-arg="${esc(d.id)}"><span class="wa-g">${I('whatsapp')}</span> Open chat ${I('uprightarrow')}</button>`;
+    const wrap = DM.sheet({
+      id: 'draft', w: 800, title: `<div class="dr-title"><span class="no">${esc(d.no)}</span><span>${esc(d.partyName || '—')}</span></div>`,
+      sub: undefined, headerExtra: chat, body,
+      footer: `<span class="muted grow" style="text-align:left">Received ${esc(O.fmtDT(st))}</span><button class="btn outline" data-sheet-close>Close</button>`,
+      onClose: () => DM.go('/orders/drafts' + qstr()),
     });
-  }
-  function refreshDraft() { const w = DM.sheetOpen(); if (DW.id && w && w.dataset.key === 'draft:' + DW.id) openDraft(DW.id); }
-  DM.refreshDraft = refreshDraft;
-  DM.sheetTab = (kind, t) => { if (kind === 'draft') { DW.tab = t; openDraft(DW.id); } };
-  DM.act('dr-dtab', (el) => { DW.tab = el.dataset.arg; openDraft(DW.id); });
-  DM.openDraft = (id) => { DW.tab = 'overview'; openDraft(id); };
+    const sub = document.createElement('div'); sub.className = 'dr-sub'; sub.innerHTML = `<span>${esc(O.fmtD(st))} · ${esc(O.fmtTm(st))}</span><i class="dot"></i>${O.stack(d.assignees && d.assignees.length ? d.assignees : [null])}`;
+    wrap.querySelector('.sheet-t').after(sub);
+  };
 
-  /* ── full page ── */
-  function detail({ params }) {
-    const d = get(params.id);
-    if (!d) return `<div class="page"><div class="empty-card"><b>Draft not found</b><p style="margin-top:12px"><a class="btn outline" href="#/orders/drafts">Back to orders</a></p></div></div>`;
-    const p = DM.by(DM.S.parties || [], d.partyId) || {}; const f = flagged(d); const open = d.status === 'pending';
-    const o = d.orderId && DM.by(DM.S.orders || [], d.orderId); const th = d.threadId && DM.by(DM.S.threads || [], d.threadId);
-    const acts = `${th ? DM.btn('Open chat', '', { cls: 'outline', go: '/inbox/threads?case=' + th.id, icon: 'chat' }) : ''}
-      ${open ? `${DM.btn('Reject', 'dr-reject', { cls: 'outline', arg: d.id })}${DM.btn('Approve', 'dr-approve', { cls: 'outline', arg: d.id, icon: 'check' })}${DM.btn('Approve & post', 'dr-post', { arg: d.id, icon: 'send' })}` : ''}
-      ${d.status === 'approved' ? DM.btn('Post as order', 'dr-post', { arg: d.id, icon: 'send' }) : ''}${d.status === 'rejected' ? DM.btn('Reopen', 'dr-reopen', { cls: 'outline', arg: d.id }) : ''}${o ? DM.btn('View order', '', { go: '/orders/' + o.id, icon: 'clipboard' }) : ''}`;
-    return `<div class="page wide"><div class="row sm muted" style="margin-bottom:8px"><a href="#/orders/drafts" class="row">${I('chevL')} Orders</a></div>
-      ${DM.header(`${DM.mono(d.no)} ${sb(d.status)}`, `${esc(pn(d.partyId))} · created ${fmt.dt(d.createdAt)} by ${esc(byName(d) || '—')}`, acts)}
-      ${f && open ? `<div class="dr-note" style="margin-bottom:14px"><div class="row">${I('alert')}<span><b>${f} line${f > 1 ? 's' : ''} need a decision.</b> Match each to a product or remove it before approving.</span></div></div>` : ''}
-      <div class="dr-grid"><div class="card"><div class="card-h"><h3 class="grow">Lines</h3><span class="muted sm">${d.lines.length} lines</span></div>
-        <div style="padding:4px 12px 8px"><table class="minitbl"><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th><th>State</th><th></th></tr></thead><tbody>${lineRows(d, open)}</tbody></table></div>
-        <div class="row" style="padding:12px 16px;border-top:1px solid var(--border)"><span class="muted sm">Flagged lines are excluded from the total</span><span class="right b mono" style="font-size:15px">Total ${fmt.inr(total(d))}</span></div></div>
-      <div class="col" style="gap:14px"><div class="card pad"><h3 style="margin-bottom:10px">Party</h3><div class="row" style="margin-bottom:10px">${DM.avatar(p.name || '?', 'lg', { org: true })}<div><a class="b" href="#/crm/accounts/${esc(d.partyId)}">${esc(p.name || '—')}</a><div class="xs muted">${esc(p.city || '')}</div></div></div>
-          <dl class="kv" style="grid-template-columns:100px 1fr"><dt>Credit terms</dt><dd>${esc(p.terms || '—')}</dd><dt>Credit limit</dt><dd class="mono">${fmt.inr(p.creditLimit)}</dd><dt>Outstanding</dt><dd class="mono ${p.outstanding > p.creditLimit ? 'down' : ''}">${fmt.inr(p.outstanding)}</dd></dl>${DM.contactRow(d.partyId)}</div>
-        ${d.note ? `<div class="card pad"><h3 style="margin-bottom:6px">Notes</h3><p class="sm">${esc(d.note)}</p></div>` : ''}
-        ${o ? DM.erpPanel(o) : ''}
-        <div class="card pad"><h3 style="margin-bottom:8px">Activity</h3><div class="ord-tl">${events(d).map((e) => `<div class="ev done"><div class="sm b">${esc(e.text)}</div>${e.at ? `<div class="xs muted">${fmt.dt(e.at)}</div>` : ''}</div>`).join('')}</div></div></div></div></div>`;
-  }
+  DM.page('/orders/drafts', { title: 'Orders', render });
+  DM.page('/orders/drafts/:id', { title: 'Orders', crumb: () => label(), render, after: (root, { params }) => { const d = allRows().find((x) => x.id === params.id); if (!d) { DM.toast('That order is not available'); return DM.go('/orders/drafts'); } openDrawer(d); } });
 
-  DM.page('/orders/drafts', { title: 'Orders', crumb: 'Orders', render: DM.ordersScreen('draft') });
-  DM.page('/orders/drafts/:id', { title: 'Draft order', crumb: (p) => p.id, render: detail });
+  /* ───────── actions ───────── */
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && /^\/orders\/drafts\/[^/]+$/.test(DM.path())) setTimeout(() => { if (!document.querySelector('[data-sheet="draft"]')) DM.go('/orders/drafts' + qstr()); }, 0); });
+  DM.act('ord-period', (el) => { ui().period = el.dataset.arg; DM.go('/orders/drafts' + (el.dataset.arg === 'month' ? '' : '?period=' + el.dataset.arg)); });
+  DM.act('ord-custom', (el) => { const rg = periodRange(ui()); O.range(el, { from: ui().from || rg.from, to: ui().to || rg.to, max: T(), onApply: (a, b) => { const u = ui(); u.period = 'custom'; u.from = a; u.to = b; DM.go(`/orders/drafts?from=${a}&to=${b}`); } }); });
+  DM.act('ord-compare', () => { ui().compare = !ui().compare; DM.render(); });
+  DM.input('ord-q', (v) => { ui().q = v; DM.render(); });
+  DM.act('ord-erp', () => { const b = document.getElementById('erp-box'); if (!b) return; b.classList.toggle('open'); ui().erpOpen = b.classList.contains('open'); });
+  DM.act('ord-chat', (el) => { const d = allRows().find((x) => x.id === el.dataset.arg); if (!d) return; const t = O.thread(S(), d); if (t) { DM.closeSheet('draft'); DM.go('/inbox/threads?case=' + t.id); } else if (DM.uc === 'rfq') DM.toast('No chat for this record', 'info'); else DM.toast('This conversation is not in the inbox demo data', 'info'); });
+  DM.act('ord-views', (el) => {
+    const u = ui(); const items = [{ heading: 'Views' }, { label: 'All ' + plural(), check: u.view === 'all', run: () => { u.view = 'all'; u.q = ''; u.assigned = ''; DM.render(); } }];
+    (u.views || []).forEach((v) => items.push({ label: v.name, check: u.view === v.id, run: () => { u.view = v.id; u.q = v.q || ''; u.assigned = v.assigned || ''; DM.render(); } }));
+    items.push({ sep: true }, { label: 'New view', icon: 'plus', run: () => newView() });
+    DM.menu(el, items, { w: 220 });
+  });
+  const newView = () => DM.dialog({ title: 'New view', sub: 'Save the current search and filters as a view.', w: 420, body: DM.field('Name', 'name', { ph: 'e.g. Handed to Pankaj' }), actions: [{ label: 'Cancel', cls: 'outline' }, { label: 'Save view', run: (d) => { const n = (d.querySelector('[name=name]').value || '').trim(); if (!n) { DM.toast('Give the view a name', 'info'); return false; } const u = ui(); const v = { id: 'v-' + Date.now(), name: n, q: u.q, assigned: u.assigned }; (u.views = u.views || []).push(v); u.view = v.id; DM.toast('View saved'); DM.render(); } }] });
 })();
