@@ -176,7 +176,7 @@
       get route() { return '/orders/drafts/d-' + seedNo(); },
       apply(S) {
         const d = draftOf(S); if (!d) return;
-        Object.assign(d, { status: 'confirmed', assigned: 'u-rohan', assignees: ['agent', 'u-pankaj', 'u-rohan'], erp: { system: 'Coral ERP', outcome: null, transaction: 'CRL-48921', orderRef: null, customerRef: PARTY, sentAt: T('18:04'), responseAt: null, lineCount: 3, error: null } });
+        Object.assign(d, { status: 'confirmed', assigned: 'u-rohan', assignee: 'u-rohan', assignees: ['agent', 'u-pankaj', 'u-rohan'], erp: { system: 'Coral ERP', outcome: null, transaction: 'CRL-48921', orderRef: null, customerRef: PARTY, sentAt: T('18:04'), responseAt: null, lineCount: 3, error: null } });
         log(S, 'lg-sc-06', '18:04', 'Rohan Mehta', `Updated Draft Order: DRF-${d.n} (Changed fields: status)`, 'Draft Order DRF-' + d.n, 'updated', 'confirmed', 'draft_order_confirmed');
       } },
     { id: 'nh-16', at: '18:04', actor: 'Coral ERP', title: 'Coral rejects the order, 422', desc: 'Customer does not exist in Coral',
