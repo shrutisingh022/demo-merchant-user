@@ -7,27 +7,39 @@
 <link rel="icon" href="assets/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@32.3.3/styles/ag-grid.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@32.3.3/styles/ag-theme-quartz.css">
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
 <div id="root"></div>
+<script src="https://cdn.jsdelivr.net/npm/ag-grid-community@32.3.3/dist/ag-grid-community.min.js"></script>
 <script src="js/core.js"></script>
-<!-- use cases: seed data + scenario script (one file each) -->
-<script src="data/rfq.js"></script>
-<script src="data/stuffcool.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/shell.js"></script>
+<!-- use cases: scenario definitions (DM.defineUC + steps) -->
 <script src="data/newhome.js"></script>
-<!-- admin pages -->
+<script src="data/stuffcool.js"></script>
+<script src="data/rfq.js"></script>
+<!-- seed data (owner per key: see docs/CONTRACT_V2.md) -->
+<script src="data/base-newhome.js"></script>
+<script src="data/base-stuffcool.js"></script>
+<script src="data/base-rfq.js"></script>
+<script src="data/seed-crm.js"></script>
+<script src="data/seed-settings.js"></script>
+<script src="data/seed-integrations.js"></script>
+<script src="data/seed-agents.js"></script>
+<script src="data/seed-inbox.js"></script>
+<script src="data/seed-orders.js"></script>
+<script src="data/seed-home.js"></script>
+<!-- pages -->
 <script src="pages/dashboard.js"></script>
 <script src="pages/inbox.js"></script>
-<script src="pages/leads.js"></script>
-<script src="pages/quotes.js"></script>
-<script src="pages/rfqs.js"></script>
 <script src="pages/orders.js"></script>
 <script src="pages/drafts.js"></script>
-<script src="pages/fulfilment.js"></script>
+<script src="pages/rfqs.js"></script>
 <script src="pages/crm.js"></script>
 <script src="pages/products.js"></script>
-<script src="pages/campaigns.js"></script>
 <script src="pages/agents.js"></script>
 <script src="pages/workflows.js"></script>
 <script src="pages/settings.js"></script>
